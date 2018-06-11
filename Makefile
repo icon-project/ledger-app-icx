@@ -23,6 +23,7 @@ APP_LOAD_PARAMS += $(APP_LOAD_FLAGS)
 
 DEFINES += $(DEFINES_LIB)
 
+COIN = icx
 ifeq ($(TARGET_NAME),TARGET_BLUE)
 ICONNAME=blue_app_$(COIN).gif
 else
