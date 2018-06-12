@@ -29,7 +29,7 @@ const ux_menu_entry_t menu_about[] = {
 const ux_menu_entry_t menu_main[] = {
     {NULL, NULL, 0, NULL, "Start Wallet", "(ICX)", 0, 0},
     {menu_about, NULL, 0, NULL, "About", NULL, 0, 0},
-    {NULL, os_sched_exit, 0, &C_nanos_icon_dashboard, "Quit app", NULL, 50, 29},
+    {NULL, os_sched_exit, 0, NULL, "Quit app", NULL, 0, 0},
     UX_MENU_END
 };
 
