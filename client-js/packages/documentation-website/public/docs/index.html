@@ -83,7 +83,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/71936d9eb8b96fc0398b55319363034e49e939ee/client-js/packages/hw-app-icx/src/Icx.js#L30-L175'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/161d55d98474ec2a1853961a6bdd9e914110281c/client-js/packages/hw-app-icx/src/Icx.js#L30-L179'>
       <span>client-js/packages/hw-app-icx/src/Icx.js</span>
       </a>
     
@@ -154,7 +154,7 @@
   <div class='clearfix'>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/71936d9eb8b96fc0398b55319363034e49e939ee/client-js/packages/hw-app-icx/src/Icx.js#L56-L90'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/161d55d98474ec2a1853961a6bdd9e914110281c/client-js/packages/hw-app-icx/src/Icx.js#L57-L91'>
       <span>client-js/packages/hw-app-icx/src/Icx.js</span>
       </a>
     
@@ -213,7 +213,8 @@
     
       <div class='py1 quiet mt1 prose-big'>Returns</div>
       <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a>&#x3C;{publicKey: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, address: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, chainCode: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>?}></code>:
-        an object with a publickey, address and (optionally) chaincode
+        an object with a publickey(hexa string), address(string) and
+(optionally) chaincode(hexa string)
 
       
     
@@ -253,7 +254,7 @@
   <div class='clearfix'>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/71936d9eb8b96fc0398b55319363034e49e939ee/client-js/packages/hw-app-icx/src/Icx.js#L102-L151'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/161d55d98474ec2a1853961a6bdd9e914110281c/client-js/packages/hw-app-icx/src/Icx.js#L106-L155'>
       <span>client-js/packages/hw-app-icx/src/Icx.js</span>
       </a>
     
@@ -282,7 +283,8 @@ and the BIP 32 path of the account to sign</p>
         <div class='space-bottom0'>
           <div>
             <span class='code bold'>path</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>)</code>
-	    
+	    a path in BIP 32 format
+
           </div>
           
         </div>
@@ -290,7 +292,8 @@ and the BIP 32 path of the account to sign</p>
         <div class='space-bottom0'>
           <div>
             <span class='code bold'>rawTxAscii</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>)</code>
-	    
+	    raw transaction data to sign in ASCII string format
+
           </div>
           
         </div>
@@ -303,7 +306,10 @@ and the BIP 32 path of the account to sign</p>
   
     
       <div class='py1 quiet mt1 prose-big'>Returns</div>
-      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a>&#x3C;{signedRawTxBase64: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, hashHex: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>}></code>
+      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a>&#x3C;{signedRawTxBase64: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, hashHex: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>}></code>:
+        an object with a base64 encoded signature and hash in hexa string
+
+      
     
   
 
@@ -345,7 +351,7 @@ and the BIP 32 path of the account to sign</p>
   <div class='clearfix'>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/71936d9eb8b96fc0398b55319363034e49e939ee/client-js/packages/hw-app-icx/src/Icx.js#L157-L174'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/161d55d98474ec2a1853961a6bdd9e914110281c/client-js/packages/hw-app-icx/src/Icx.js#L161-L178'>
       <span>client-js/packages/hw-app-icx/src/Icx.js</span>
       </a>
     

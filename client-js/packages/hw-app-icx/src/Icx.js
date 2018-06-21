@@ -49,7 +49,8 @@ export default class Icx {
    * @param path a path in BIP 32 format
    * @option boolDisplay optionally enable or not the display
    * @option boolChaincode optionally enable or not the chaincore request
-   * @return an object with a publickey, address and (optionally) chaincode
+   * @return an object with a publickey(hexa string), address(string) and 
+   *  (optionally) chaincode(hexa string)
    * @example
    * icx.getAddress("44'/4801368'/0'/0'/0").then(o => o.address)
    */
@@ -92,6 +93,9 @@ export default class Icx {
   /**
    * Signs a transaction and returns signed message given the raw transaction
    * and the BIP 32 path of the account to sign
+   * @param path a path in BIP 32 format
+   * @param rawTxAscii raw transaction data to sign in ASCII string format
+   * @return an object with a base64 encoded signature and hash in hexa string
    * @example
    * icx.signTransaction("44'/4801368'/0'/0'/0'",
    *     "icx_sendTransaction.fee.0x2386f26fc10000." +
