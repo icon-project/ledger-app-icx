@@ -78,7 +78,7 @@ yarn documentation
 ```
 
 # API 
-Refer to [API document](./packages/documentation-website/public/docs/)
+Refer to [API document](./packages/documentation-website/public/docs/index.html)
 
 # Examples
 ```js
