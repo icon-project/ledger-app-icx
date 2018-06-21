@@ -15,13 +15,13 @@ Nano S / Blue applications.
 
 ### Preparation
 1. Connect Ledger Nano S device on a USB port
-1. Make sure Ledger Nano S is properly set up and ICON application is installed 
-and started
+1. Make sure Ledger Nano S set up and ICON application installed and started
 
 ### Build and test
 1. Simply install dependencies, build, and start a simple web server with simple
 test-purpose ICON web app
     ```
+    $ cd client-js
     $ yarn
     $ yarn test
     ```
@@ -70,7 +70,7 @@ Refer to API document
 # Examples
 ```js
 import Transport from "@ledgerhq/hw-transport-u2f";
-import AppBtc from "@ledgerhq/hw-app-icx";
+import Icx from "@ledgerhq/hw-app-icx";
 
 const getIcxAddress = async () => {
   const transport = await TransportU2F.create();
@@ -83,5 +83,6 @@ getIcxAddress().then(a => console.log(a));
 
 # TODO
 
-* Adds ICON Ledger app test cases
+* Add JS API document
+* Add ICON Ledger app test cases
 * Enhance ICON Ledger app sample web page
