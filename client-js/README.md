@@ -24,6 +24,7 @@ test-purpose ICON web app
     ```
     $ cd client-js
     $ yarn
+    $ yarn build
     $ yarn test
     ```
 
@@ -60,7 +61,7 @@ yarn lint
 ```
 
 #### Run tests
-Build and make it ready to test at once.
+Launch simple web server with ICON test web app
 ```
 yarn test
 ```
