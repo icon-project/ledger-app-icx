@@ -6,12 +6,13 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "cd packages/test-icx && yarn run test",
-    "lint": "eslint packages/**/src",
     "build": "BABEL_ENV=production && lerna run build",
-    "watch": "lerna run --parallel watch",
     "clean": "rm -rf node_modules packages/*/node_modules/ packages/*/flow-typed/ packages/*/lib flow-typed",
-    "rebuild": "lerna run clean && lerna run build"
+    "documentation": "documentation build packages/hw-*/src/** packages/react-native-*/src/** --project-name '@ledgerhq/*' --project-version `node -e \"console.log(require('./lerna.json').version)\"` --project-homepage https://github.com/LedgerHQ/ledgerjs --config documentation.yml -g -f html -o packages/documentation-website/public/docs", 
+    "lint": "eslint packages/**/src",
+    "rebuild": "lerna run clean && lerna run build", 
+    "test": "cd packages/test-icx && yarn run test",
+    "watch": "lerna run --parallel watch"
   },
   "dependencies": {
     "babel-cli": "^6.26.0",
