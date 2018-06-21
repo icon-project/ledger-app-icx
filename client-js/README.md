@@ -78,7 +78,7 @@ yarn documentation
 ```
 
 # API 
-Refer to [API document](./packages/documentation-website/public/docs/index.html)
+Refer to API document under ./packages/documentation-website/public/docs/index.html
 
 # Examples
 ```js
@@ -98,3 +98,4 @@ getIcxAddress().then(a => console.log(a));
 
 * Add ICON Ledger app test cases
 * Enhance ICON Ledger app sample web page
+* Show API documents directly from this page
