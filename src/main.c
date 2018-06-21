@@ -59,28 +59,46 @@ typedef struct publicKeyContext_t {
     bool getChaincode;
 } publicKeyContext_t;
 
+enum {
+    PARSER_BUF_SIZE = 64+2,
+    ICX_EXP = 18
+};
+
 typedef enum {
     PARSER_STATE_PREFIX,
     PARSER_STATE_KEY,
-    PARSER_STATE_VALUE_TO,
-    PARSER_STATE_VALUE_VALUE,
-    PARSER_STATE_VALUE_FEE,
-    PARSER_STATE_VALUE_OTHER
-} parser_state_t;
+    PARSER_STATE_VALUE
+} PARSER_STATE;
+
+typedef struct {
+    PARSER_STATE state;
+    char* wp;           //  write position
+    char* ltoken;       //  last token
+    int feedLeft;
+    char buf[PARSER_BUF_SIZE];
+
+    bool hasTo;
+    uint8_t to[43];
+
+    bool hasValue;
+    uint256_t value;
+
+    bool hasFee;
+    uint256_t fee;
+} Parser;
+
+typedef enum {
+    PARSER_RESULT_MORE,
+    PARSER_RESULT_OK,
+    PARSER_RESULT_ERROR
+} PARSER_RESULT;
 
 typedef struct transactionContext_t {
     uint8_t pathLength;
     uint32_t bip32Path[MAX_BIP32_PATH];
     uint8_t hash[32];
     uint32_t txLeft;
-
-    parser_state_t parserState;
-    uint8_t parserBuf[64];
-    uint8_t* wp;
-
-    uint8_t to[43];
-    uint256_t value;
-    uint256_t fee;
+    Parser parser;
 } transactionContext_t;
 
 union {
@@ -92,6 +110,7 @@ cx_sha3_t sha3;
 
 volatile char fullAddress[43];
 volatile char fullAmount[50];
+volatile char fullFee[50];
 volatile bool skipWarning;
 
 /*------------------------------------------------------------------------------
@@ -258,7 +277,6 @@ const bagl_element_t ui_approval_nanos[] = {
      NULL,
      NULL},
 
-#if 0
     {{BAGL_LABELINE, 0x03, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
      "Amount",
@@ -299,7 +317,7 @@ const bagl_element_t ui_approval_nanos[] = {
 
     {{BAGL_LABELINE, 0x05, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "Maximum fees",
+     "Fee",
      0,
      0,
      0,
@@ -308,14 +326,13 @@ const bagl_element_t ui_approval_nanos[] = {
      NULL},
     {{BAGL_LABELINE, 0x05, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
-     (char *)maxFee,
+     (char *)fullFee,
      0,
      0,
      0,
      NULL,
      NULL,
      NULL},
-#endif
 
 };
 
@@ -577,7 +594,7 @@ unsigned char io_event(unsigned char channel) {
     return 1;
 }
 
-static const uint8_t const HEXDIGITS[] = "0123456789ABCDEF";
+static const uint8_t const HEXDIGITS[] = "0123456789abcdef";
 static const uint8_t const MASK[] = {0x80, 0x40, 0x20, 0x10,
                                      0x08, 0x04, 0x02, 0x01};
 
@@ -620,6 +637,70 @@ void getICONAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
     cx_hash((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
             hashAddress, sizeof(hashAddress));
     getICONAddressStringFromBinary(hashAddress + 12, out, sha3Context);
+}
+
+bool adjustDecimals(char *src, uint32_t srcLength, char *target,
+                    uint32_t targetLength, uint8_t decimals) {
+    uint32_t startOffset;
+    uint32_t lastZeroOffset = 0;
+    uint32_t offset = 0;
+    if ((srcLength == 1) && (*src == '0')) {
+        if (targetLength < 2) {
+            return false;
+        }
+        target[0] = '0';
+        target[1] = '\0';
+        return true;
+    }
+    if (srcLength <= decimals) {
+        uint32_t delta = decimals - srcLength;
+        if (targetLength < srcLength + 1 + 2 + delta) {
+            return false;
+        }
+        target[offset++] = '0';
+        target[offset++] = '.';
+        for (uint32_t i = 0; i < delta; i++) {
+            target[offset++] = '0';
+        }
+        startOffset = offset;
+        for (uint32_t i = 0; i < srcLength; i++) {
+            target[offset++] = src[i];
+        }
+        target[offset] = '\0';
+    } else {
+        uint32_t sourceOffset = 0;
+        uint32_t delta = srcLength - decimals;
+        if (targetLength < srcLength + 1 + 1) {
+            return false;
+        }
+        while (offset < delta) {
+            target[offset++] = src[sourceOffset++];
+        }
+        if (decimals != 0) {
+            target[offset++] = '.';
+        }
+        startOffset = offset;
+        while (sourceOffset < srcLength) {
+            target[offset++] = src[sourceOffset++];
+        }
+	target[offset] = '\0';
+    }
+    for (uint32_t i = startOffset; i < offset; i++) {
+        if (target[i] == '0') {
+            if (lastZeroOffset == 0) {
+                lastZeroOffset = i;
+            }
+        } else {
+            lastZeroOffset = 0;
+        }
+    }
+    if (lastZeroOffset != 0) {
+        target[lastZeroOffset] = '\0';
+        if (target[lastZeroOffset - 1] == '.') {
+            target[lastZeroOffset - 1] = '\0';
+        }
+    }
+    return true;
 }
 
 void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
@@ -676,48 +757,117 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
     }
 }
 
-void handleTx(transactionContext_t* txCtx, const uint8_t* in,
-        const uint8_t* end, uint8_t isLast) {
-    /*
-    while (in < end) {
-        if (txCtx->parserState==PARSER_STATE_PREFIX) {
-            while (*in != '.' && in < end)
-                ++in;
-            if (*in=='.') {
-                txCtx->wp = txCtx->parserBuf;
-                ++in;
-                txCtx->parserState=PARSER_STATE_KEY;
-            }
-        } else if (txCtx->parserState==PARSER_STATE_KEY) {
-            while (*in != '.' && in < end)
-                *(txCtx->wp)++ = *in++;
-            if (*in=='.') {
-                txCtx->wp = txCtx->parserBuf;
-                ++in;
-                if (os_memcmp(txCtx->parserBuf, "fee.", 4)==0) {
-                    txCtx->parserState=PARSER_STATE_VALUE_FEE;
-                } else if (os_memcmp(txCtx->parserBuf, "to.", 3)==0) {
-                    txCtx->parserState=PARSER_STATE_VALUE_TO;
-                } else if (os_memcmp(txCtx->parserBuf, "value.", 6)==0) {
-                    txCtx->parserState=PARSER_STATE_VALUE_VALUE;
-                } else {
-                    txCtx->parserState=PARSER_STATE_VALUE_OTHER;
-                }
-            }
-        } else if (txCtx->parserState==PARSER_STATE_VALUE_FEE) {
-            while (*in != '.' && in < end)
-                ;
-        }
-    }
-    */
+static int hexValue(char digit) {
+    if (digit < '0')
+        return -1;
+    if (digit <= '9')
+        return digit-'0';
+    if (digit < 'a')
+        return -1;
+    if (digit <= 'f')
+        return digit-'a'+10;
+    return -1;
 }
+
+bool parseHex256(const uint8_t* hex, int len, uint256_t* target) {
+    uint256_t v;
+
+    if (len>64)
+        return false;
+
+    clear256(&v);
+    clear256(target);
+
+    for (int i=0; i<len; ++i) {
+        int d = hexValue(hex[i]);
+        if (d<0)
+            return false;
+        shiftl256(target, 4, target);
+        LOWER(LOWER(v)) = d;
+        or256(target, &v, target);
+    }
+    return true;
+}
+
+static PARSER_RESULT onToken(Parser* parser, const char* token, int len) {
+    if (parser->state==PARSER_STATE_PREFIX) {
+        if (len!=19 || os_memcmp(token, "icx_sendTransaction", 19)!=0)
+            return PARSER_RESULT_ERROR;
+        parser->state = PARSER_STATE_KEY;
+        return PARSER_RESULT_OK;
+    } else if (parser->state==PARSER_STATE_KEY) {
+        parser->state = PARSER_STATE_VALUE;
+        return PARSER_RESULT_MORE;
+    } else if (parser->state==PARSER_STATE_VALUE) {
+        const char* key = parser->buf;
+        int keyLen = parser->ltoken - parser->buf - 1;
+        if (keyLen==3 && os_memcmp(key, "fee", 3)==0) {
+            parser->hasFee = true;
+            parseHex256(token+2, len-2, &parser->fee);
+        } else if (keyLen==5 && os_memcmp(key, "value", 5)==0) {
+            parser->hasValue = true;
+            parseHex256(token+2, len-2, &parser->value);
+        } else if (keyLen==2 && os_memcmp(key, "to", 2)==0) {
+            parser->hasTo = true;
+            os_memmove(parser->to, token, 43);
+        }
+        parser->state = PARSER_STATE_KEY;
+    }
+}
+
+void parser_init(Parser* parser, int txLen) {
+    parser->state = PARSER_STATE_PREFIX;
+    parser->wp = parser->buf;
+    parser->ltoken = parser->buf;
+    parser->feedLeft = txLen;
+}
+
+int parser_feed(Parser* parser, const char* p, int len) {
+    const char* end;
+    PARSER_RESULT res;
+
+    if (parser->feedLeft < len)
+        len = parser->feedLeft;
+    end = p+len;
+
+    while (p<end) {
+        if (*p=='.') {
+            *(parser->wp)++ = 0;
+            res = onToken(parser, parser->ltoken,
+                    parser->wp - parser->ltoken - 1);
+            if (res==PARSER_RESULT_ERROR) {
+                return PARSER_RESULT_ERROR;
+            } else if (res==PARSER_RESULT_MORE) {
+                parser->ltoken = parser->wp;
+                ++p;
+                continue;
+            } else {
+                parser->wp = parser->buf;
+                parser->ltoken = parser->buf;
+                ++p;
+                continue;
+            }
+        }
+        *(parser->wp)++ = *p++;
+    }
+
+    if (parser->feedLeft == len) {
+        *(parser->wp)++ = 0;
+        res = onToken(parser, parser->ltoken, parser->wp - parser->ltoken - 1);
+        if (res==PARSER_RESULT_MORE)
+            return PARSER_RESULT_ERROR;
+        return res;
+    }
+    parser->feedLeft -= len;
+    return PARSER_RESULT_MORE;
+}
+
 
 void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                 uint16_t dataLength, volatile unsigned int *flags,
                 volatile unsigned int *tx) {
     UNUSED(tx);
     uint32_t i;
-    uint8_t address[41];
     if (p1 == P1_FIRST) {
         tmpCtx.transactionContext.pathLength = workBuffer[0];
         if ((tmpCtx.transactionContext.pathLength < 0x01) ||
@@ -742,7 +892,8 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         workBuffer += 4;
         dataLength -= 4;
         cx_sha3_init(&sha3, 256);
-        tmpCtx.transactionContext.wp = tmpCtx.transactionContext.parserBuf;
+        parser_init(&tmpCtx.transactionContext.parser,
+                tmpCtx.transactionContext.txLeft);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }
@@ -751,28 +902,49 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     }
 
     cx_hash((cx_hash_t *)&sha3, 0, workBuffer, dataLength, NULL, 0);
-    handleTx(&tmpCtx.transactionContext, workBuffer, dataLength, 0);
+    parser_feed(&tmpCtx.transactionContext.parser,
+            workBuffer, dataLength);
     tmpCtx.transactionContext.txLeft -= dataLength;
 
     if (tmpCtx.transactionContext.txLeft>0) {
         THROW(0x9000);
     }
 
-    uint8_t hash[32];
-    cx_hash((cx_hash_t *)&sha3, CX_LAST, workBuffer, 0, hash, sizeof(hash));
-    handleTx(&tmpCtx.transactionContext, workBuffer, 0, 1);
+    Parser* parser = &tmpCtx.transactionContext.parser;
+    if (!parser->hasTo || !parser->hasValue || !parser->hasFee) {
+        THROW(0x6A80);
+    }
 
-    /*
-    getICONAddressStringFromBinary(tmpContent.txContent.destination, address,
-                                  &sha3);
-    fullAddress[0] = '0';
-    fullAddress[1] = 'x';
-    os_memmove((unsigned char *)fullAddress + 2, address, 40);
-    fullAddress[42] = '\0';
-    convertUint256BE(tmpContent.txContent.value.value,
-                     tmpContent.txContent.value.length, &uint256);
-    tostring256(&uint256, 10, (char *)(G_io_apdu_buffer + 100), 100);
-    */
+    cx_hash((cx_hash_t *)&sha3, CX_LAST, workBuffer, 0,
+            tmpCtx.transactionContext.hash,
+            sizeof(tmpCtx.transactionContext.hash));
+
+    os_memmove(fullAddress, (unsigned char *)parser->to, 43);
+
+    tostring256(&parser->value, 10, (char *)(G_io_apdu_buffer + 100), 100);
+    i = 0;
+    while (G_io_apdu_buffer[100 + i]) {
+        i++;
+    }
+    fullAmount[0] = 'I';
+    fullAmount[1] = 'C';
+    fullAmount[2] = 'X';
+    fullAmount[3] = ' ';
+    adjustDecimals((char *)(G_io_apdu_buffer + 100), i,
+            fullAmount+4, sizeof(fullAmount)-4, ICX_EXP);
+
+    tostring256(&parser->fee, 10, (char *)(G_io_apdu_buffer + 100), 100);
+    i = 0;
+    while (G_io_apdu_buffer[100 + i]) {
+        i++;
+    }
+    fullFee[0] = 'I';
+    fullFee[1] = 'C';
+    fullFee[2] = 'X';
+    fullFee[3] = ' ';
+    adjustDecimals((char *)(G_io_apdu_buffer + 100), i,
+            fullFee+4, sizeof(fullFee)-4, ICX_EXP);
+
     skipWarning = true;
     ux_step = 0;
     ux_step_count = 5;
