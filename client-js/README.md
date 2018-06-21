@@ -7,6 +7,7 @@ Nano S / Blue applications.
 
 ### Build Environment
 * yarn
+* Node.js
 
 ### Test Environment
 * Ledger device with ICON application installed
@@ -31,7 +32,7 @@ test-purpose ICON web app
     > It uses chrome built-in extension for U2F so use Chrome web browser
 
     > Allow web browser to access site of untrusted certificate 
-which a simple web server BUDO uses. U2F communication is only allowed for HTTPS
+which a simple web server BUDO uses. U2F communication is only allowed on HTTPS
 
 ### Build scripts
 
@@ -64,8 +65,20 @@ Build and make it ready to test at once.
 yarn test
 ```
 
+#### Clean 
+Clean all build output
+```
+yarn clean
+```
+
+#### Documentation 
+Generate API documents at ./packages/documentation-website
+```
+yarn documentation
+'''
+
 # API 
-Refer to API document
+Refer to [API document](./packages/documentation-website/public/docs/)
 
 # Examples
 ```js
@@ -83,6 +96,5 @@ getIcxAddress().then(a => console.log(a));
 
 # TODO
 
-* Add JS API document
 * Add ICON Ledger app test cases
 * Enhance ICON Ledger app sample web page
