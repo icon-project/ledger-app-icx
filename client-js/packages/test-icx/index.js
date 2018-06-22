@@ -26,8 +26,7 @@ class App extends Component {
   onGetAddress = async () => {
     try {
       this.setState({ error: null });
-      const transport = await TransportU2F.create();
-      const icx = new Icx(transport);
+      const icx = new Icx(await TransportU2F.create());
       const { publicKey, address, chainCode } = await icx.getAddress("44'/4801368'/0'/0'/0'", false, true);
       const resultText = "[publicKey=" + publicKey + "],[address=" + address + "],[chainCode=" + chainCode + "]";
       this.setState({ result: resultText });
@@ -38,8 +37,7 @@ class App extends Component {
   onSignTransaction = async () => {
     try {
       this.setState({ error: null });
-      const transport = await TransportU2F.create();
-      const icx = new Icx(transport);
+      const icx = new Icx(await TransportU2F.create());
       const path = "44'/4801368'/0'/0'/0'";
       const rawTx = 
         "icx_sendTransaction.fee.0x2386f26fc10000." +
@@ -56,8 +54,7 @@ class App extends Component {
   onGetAppConfiguration = async () => {
     try {
       this.setState({ error: null });
-      const transport = await TransportU2F.create();
-      const icx = new Icx(transport);
+      const icx = new Icx(await TransportU2F.create());
       const {
         majorVersion,
         minorVersion,
@@ -74,10 +71,9 @@ class App extends Component {
   onTestGetAddress = async() => {
     try {
       this.setState({ error: null });
-      const transport = await TransportU2F.create();
-      const icx = new Icx(transport);
+      const icx = new Icx(await TransportU2F.create());
       await icx.setTestPrivateKey("23498dc21b9ee52e63e8d6566e0911ac255a38d3fcbc68a51e6b298520b72d6e");
-      const { publicKey, address, chainCode } = await icx.getAddress("0'", false, false);
+      const { publicKey, address, chainCode } = await icx.getAddress("0'", true, false);
 
       let isSamePublicKey = false;
       let isSameAddress = false;
@@ -89,14 +85,19 @@ class App extends Component {
       if (address == answerAddress) {
         isSameAddress = true;
       }
-      let resultText = "PASS";
+      let failMessage = "";
       if (!isSamePublicKey) {
-        resultText = "FAIL: wrong public key ('" + publicKey + "' should be '" + answerPublicKey + "'.)" ;
+        failMessage += "wrong public key ('" + publicKey + "' should be '" + answerPublicKey + "'.)" ;
       }
       else if (!isSameAddress) {
-        resultText = "FAIL: wrong address ('" + address + "' should be '" + answerAddress + "'.)" ;
+        failMessage += "wrong address ('" + address + "' should be '" + answerAddress + "'.)" ;
       }
-      this.setState({ result: resultText });
+      if (failMessage.length > 0) {
+        this.setState({ error: "FAIL: " + failMessage });
+      }
+      else {
+        this.setState({ result: "PASS" });
+      }
     } catch (error) {
       this.setState({ error });
     }
@@ -104,8 +105,7 @@ class App extends Component {
   onTestSignTransaction = async() => {
     try {
       this.setState({ error: null });
-      const transport = await TransportU2F.create();
-      const icx = new Icx(transport);
+      const icx = new Icx(await TransportU2F.create());
       await icx.setTestPrivateKey("ac7d849f0f232c3b01818d43b0323e31d4aec933aeb7681595215ea98ab70c20");
       const rawTx =
         "icx_sendTransaction.free.0x2386f26fc10000." +
@@ -123,14 +123,19 @@ class App extends Component {
       if (hashHex == answerHash) {
         isSameHash = true;
       }
-      let resultText = "PASS";
+      let failMessage = "";
       if (!isSameSignature) {
-        resultText = "FAIL: wrong signature ('" + signedRawTxBase64 + "' should be '" + answerSignature + "'.)" ;
+        failMessage += "wrong signature ('" + signedRawTxBase64 + "' should be '" + answerSignature + "'.)" ;
       }
       else if (!isSameHash) {
-        resultText = "FAIL: wrong hash ('" + hashHex + "' should be '" + answerHash + "'.)" ;
+        failMessage += "wrong hash ('" + hashHex + "' should be '" + answerHash + "'.)" ;
       }
-      this.setState({ result: resultText });
+      if (failMessage.length > 0) {
+        this.setState({ error: "FAIL: " + failMessage });
+      }
+      else {
+        this.setState({ result: resultText });
+      }
     } catch (error) {
       this.setState({ error });
     }
@@ -152,20 +157,20 @@ class App extends Component {
           <li>simple function call
             <ul>
               <li>
-                <button onClick={this.onGetAddress}>
+                <button className="action" onClick={this.onGetAddress}>
                   getAddress()
                 </button>
               </li>
               <li>
-                <button onClick={this.onSignTransaction}>
+                <button className="action" onClick={this.onSignTransaction}>
                   signTransaction()
                 </button>
-                <ol>
-                  <li>Check tx info on Ledger display and confirm</li>
-                </ol>
+                <ul>
+                  <li>check tx info on Ledger display and confirm</li>
+                </ul>
               </li>
               <li>
-                <button onClick={this.onGetAppConfiguration}>
+                <button className="action" onClick={this.onGetAppConfiguration}>
                   getAppConfiguration()
                 </button>
               </li>
@@ -176,16 +181,22 @@ class App extends Component {
           <li>ledger app test cases
             <ul>
               <li>
-                <button onClick={this.onTestGetAddress}>
+                <button className="action" onClick={this.onTestGetAddress}>
                   verify public key and address from getAddress()
                 </button>
+                <ul>
+                  <li>check if the address on display is 'hxfa1602a01d0ca2c2256f1a508be6498df801a5b2' and confirm</li>
+                </ul>
               </li>
             </ul>
             <ul>
               <li>
-                <button onClick={this.onTestSignTransaction}>
+                <button className="action" onClick={this.onTestSignTransaction}>
                   verify signature and hash from signTransaction()
                 </button>
+                <ul>
+                  <li>check tx info on Ledger display and confirm</li>
+                </ul>
               </li>
             </ul>
           </li>
@@ -194,15 +205,18 @@ class App extends Component {
           <li>reference function
             <ul>
               <li>
-                <button onClick={this.onBtcGetAddress}>
+                <button className="action" onClick={this.onBtcGetAddress}>
                   reference Btc.getAddress()
                 </button>
+                <ul>
+                  <li>NOTE: make sure BTC app is running</li>
+                </ul>
               </li>
             </ul>
           </li>
         </ul>
         <p>
-          result: <button onClick={this.onClear}>clear</button>
+          RESULT: <button className="action" onClick={this.onClear}>clear</button>
           <p>
           {error ? (
             <code className="error">{error.toString()}</code>
