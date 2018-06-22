@@ -14,6 +14,7 @@ class App extends Component {
     try {
       this.setState({ error: null });
       const transport = await TransportU2F.create();
+      transport.setDebugMode(true);
       const btc = new Btc(transport);
       const { bitcoinAddress } = await btc.getWalletPublicKey("44'/0'/0'/0'");
       this.setState({ result: bitcoinAddress });
@@ -26,7 +27,7 @@ class App extends Component {
     try {
       this.setState({ error: null });
       const transport = await TransportU2F.create();
-      const icx = new Icx(transport)
+      const icx = new Icx(transport);
       const { publicKey, address, chainCode } = await icx.getAddress("44'/4801368'/0'/0'/0'", false, true);
       const resultText = "[publicKey=" + publicKey + "],[address=" + address + "],[chainCode=" + chainCode + "]";
       this.setState({ result: resultText });
