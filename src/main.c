@@ -484,6 +484,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     aio_write(signature + 4 + rOffset, 32);
     aio_write(signature + 4 + rLength + 2 + sOffset, 32);
     aio_write8(signature[0] & 0x01);
+    aio_write(tmpCtx.transactionContext.hash, 32);
     aio_write16(0x9000);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, g_aio.tx);
