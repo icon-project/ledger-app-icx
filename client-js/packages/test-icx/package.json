@@ -3,7 +3,8 @@
   "license": "Apache-2.0",
   "scripts": {
     "start": "cross-env NODE_ENV=development parcel index.html --https",
-    "build": "cross-env NODE_ENV=production parcel build index.html --no-minify --public-url /",
+    "build": "rm -rf .cache/ && cross-env NODE_ENV=production parcel build index.html --no-minify --public-url /",
+    "clean": "rm -rf dist/ .cache/",
     "test": "budo --ssl -d dist"
   },
   "dependencies": {

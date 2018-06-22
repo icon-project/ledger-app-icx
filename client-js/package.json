@@ -7,10 +7,9 @@
   ],
   "scripts": {
     "build": "BABEL_ENV=production && lerna run build",
-    "clean": "rm -rf node_modules packages/*/node_modules/ packages/*/flow-typed/ packages/*/lib flow-typed",
+    "clean": "rm -rf node_modules packages/*/node_modules/ packages/*/flow-typed/ packages/*/lib flow-typed && lerna run clean",
     "documentation": "documentation build packages/hw-*/src/** --project-name '@ledgerhq/*' --project-version `node -e \"console.log(require('./lerna.json').version)\"` --project-homepage https://repo.theloop.co.kr/enterprise/ledger-app-icx --config documentation.yml -g -f html -o packages/documentation-website/public/docs", 
     "lint": "eslint packages/**/src",
-    "rebuild": "lerna run clean && lerna run build", 
     "test": "cd packages/test-icx && yarn run test",
     "watch": "lerna run --parallel watch"
   },
