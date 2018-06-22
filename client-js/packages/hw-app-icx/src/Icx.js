@@ -37,7 +37,8 @@ export default class Icx {
       [
         "getAddress",
         "signTransaction",
-        "getAppConfiguration"
+        "getAppConfiguration",
+        "setTestPrivateKey"
       ],
       "ICON"
     );
@@ -52,7 +53,7 @@ export default class Icx {
    * @return an object with a publickey(hexa string), address(string) and 
    *  (optionally) chaincode(hexa string)
    * @example
-   * icx.getAddress("44'/4801368'/0'/0'/0").then(o => o.address)
+   * icx.getAddress("44'/4801368'/0'/0'/0", true, true).then(o => o.address)
    */
   getAddress(
     path: string,
@@ -163,17 +164,46 @@ export default class Icx {
     minorVersion: number,
     patchVersion: number
   }> {
-    console.log("getAppConfiguration()");
     return this.transport
       .send(0xe0, 0x06, 0x00, 0x00)
       .then(response => {
-    console.log("returning getAppConfiguration()");
-    console.log("returning getAppConfiguration()" + response[0]);
         let result = {};
         result.majorVersion = response[0];
         result.minorVersion = response[1];
         result.patchVersion = response[2];
         return result;
       });
+  }
+
+  /**
+   * Sets the given key as the test purpose private key corresponding to 
+   * "\0'" of BIP 32 path just for test purpose. After calling this function,
+   * all functions with "\0'" path works based on this private key. 
+   * REMARK: Test purpose only such as verifying signTransaction function. 
+   * @param privateKeyHex private key in hexadecimal string format
+   * @example
+   * icx.setTestPrivateKey("23498dc21b9ee52e63e8d6566e0911ac255a38d3fcbc68a51e6b298520b72d6e")
+   *   .then(result => ...)
+   * icx.getAddress("0'", false, false).then(o => o.address)
+   */
+  /*
+  setTestPrivateKey(privateKeyHex: string): Promise<{a: string}> {
+    let data = new Buffer(32);
+    for (let i = 0; i < privateKeyHex.length; i += 2) {
+      data[i / 2] = parseInt(privateKeyHex.substr(i, 8), 16);
+    }
+    this.transport.send(0xe0, 0xff, 0x00, 0x00, data).then(
+      apduResponse => {
+        return apduResponse;
+      }
+    );
+  }
+  */
+  setTestPrivateKey(privateKeyHex: string) {
+    let data = new Buffer(32);
+    for (let i = 0; i < privateKeyHex.length; i += 2) {
+      data[i / 2] = parseInt(privateKeyHex.substr(i, 8), 16);
+    }
+    this.transport.send(0xe0, 0xff, 0x00, 0x00, data).then();
   }
 }
