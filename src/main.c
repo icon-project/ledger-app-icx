@@ -20,6 +20,8 @@
 #include <os_io_seproxyhal.h>
 #include "uint256.h"
 
+//#define TEST_MODE
+
 #define MAX_BIP32_PATH 10
 
 #define CLA 0xE0
@@ -42,7 +44,30 @@
 #define OFFSET_LC 4
 #define OFFSET_CDATA 5
 
-//#include "glyphs.h"
+//  APDU IO
+typedef struct APDUIO {
+    uint32_t flags;
+    uint16_t rx;
+    uint16_t tx;
+} APDUIO;
+
+APDUIO g_aio;
+
+#define g_aio_buf G_io_apdu_buffer
+
+inline void aio_write8(uint8_t v) {
+    g_aio_buf[g_aio.tx++] = v & 0xFF;
+}
+
+inline void aio_write16(uint16_t sw) {
+    g_aio_buf[g_aio.tx++] = (sw>>8) & 0xFF;
+    g_aio_buf[g_aio.tx++] = sw & 0xFF;
+}
+
+inline void aio_write(const char* in, int len) {
+    os_memmove(g_aio_buf+g_aio.tx, in, len);
+    g_aio.tx += len;
+}
 
 /*------------------------------------------------------------------------------
     Required global variables from SDK
@@ -121,22 +146,15 @@ volatile bool skipWarning;
  * All icon files reside in "glyphs" folder, and it will be generated as
  * "src/glyphs.h" and "src/glyphs.c".
  */
-uint32_t set_result_get_publicKey() {
-    uint32_t tx = 0;
-    G_io_apdu_buffer[tx++] = 65;
-    os_memmove(G_io_apdu_buffer + tx, tmpCtx.publicKeyContext.publicKey.W, 65);
-    tx += 65;
-    G_io_apdu_buffer[tx++] = 42;
-    G_io_apdu_buffer[tx++] = 'h';
-    G_io_apdu_buffer[tx++] = 'x';
-    os_memmove(G_io_apdu_buffer + tx, tmpCtx.publicKeyContext.address, 40);
-    tx += 40;
-    if (tmpCtx.publicKeyContext.getChaincode) {
-        os_memmove(G_io_apdu_buffer + tx, tmpCtx.publicKeyContext.chainCode,
-                   32);
-        tx += 32;
-    }
-    return tx;
+void set_result_get_publicKey() {
+    aio_write8(65);
+    aio_write(tmpCtx.publicKeyContext.publicKey.W, 65);
+    aio_write8(42);
+    aio_write8('h');
+    aio_write8('x');
+    aio_write(tmpCtx.publicKeyContext.address, 40);
+    if (tmpCtx.publicKeyContext.getChaincode)
+        aio_write(tmpCtx.publicKeyContext.chainCode, 32);
 }
 
 const ux_menu_entry_t menu_main[];
@@ -361,19 +379,17 @@ unsigned int ui_address_prepro(const bagl_element_t *element) {
 }
 
 unsigned int io_seproxyhal_touch_address_ok(const bagl_element_t *e) {
-    uint32_t tx = set_result_get_publicKey();
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
+    set_result_get_publicKey();
+    aio_write16(0x9000);
     // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, g_aio.tx);
     // Display back the original UX
     ui_idle();
     return 0; // do not redraw the widget
 }
 
 unsigned int io_seproxyhal_touch_address_cancel(const bagl_element_t *e) {
-    G_io_apdu_buffer[0] = 0x69;
-    G_io_apdu_buffer[1] = 0x85;
+    aio_write16(0x6985);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     // Display back the original UX
@@ -432,7 +448,6 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     uint8_t signature[100];
     uint8_t signatureLength;
     cx_ecfp_private_key_t privateKey;
-    uint32_t tx = 0;
     uint8_t rLength, sLength, rOffset, sOffset;
 
     if (tmpCtx.transactionContext.bip32Path[0]==TEST_BIP32) {
@@ -466,23 +481,19 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     sLength = signature[4 + rLength + 1];
     rOffset = (rLength == 33 ? 1 : 0);
     sOffset = (sLength == 33 ? 1 : 0);
-    os_memmove(G_io_apdu_buffer, signature + 4 + rOffset, 32);
-    os_memmove(G_io_apdu_buffer + 32, signature + 4 + rLength + 2 + sOffset,
-               32);
-    G_io_apdu_buffer[64] = (signature[0] & 0x01);
-    tx = 65;
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
+    aio_write(signature + 4 + rOffset, 32);
+    aio_write(signature + 4 + rLength + 2 + sOffset, 32);
+    aio_write8(signature[0] & 0x01);
+    aio_write16(0x9000);
     // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, g_aio.tx);
     // Display back the original UX
     ui_idle();
     return 0; // do not redraw the widget
 }
 
 unsigned int io_seproxyhal_touch_tx_cancel(const bagl_element_t *e) {
-    G_io_apdu_buffer[0] = 0x69;
-    G_io_apdu_buffer[1] = 0x85;
+    aio_write16(0x6985);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     // Display back the original UX
@@ -544,7 +555,7 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
         break;
     case CHANNEL_SPI:
         if (tx_len) {
-            io_seproxyhal_spi_send(G_io_apdu_buffer, tx_len);
+            io_seproxyhal_spi_send(g_aio_buf, tx_len);
 
             if (channel & IO_RESET_AFTER_REPLIED) {
                 reset();
@@ -552,8 +563,8 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
             return 0; // nothing received from the master so far (it's a tx
                       // transaction)
         } else {
-            return io_seproxyhal_spi_recv(G_io_apdu_buffer,
-                                          sizeof(G_io_apdu_buffer), 0);
+            return io_seproxyhal_spi_recv(g_aio_buf,
+                                          sizeof(g_aio_buf), 0);
         }
     default:
         THROW(INVALID_PARAMETER);
@@ -711,9 +722,11 @@ bool adjustDecimals(char *src, uint32_t srcLength, char *target,
     return true;
 }
 
-void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
-                        uint16_t dataLength, volatile unsigned int *flags,
-                        volatile unsigned int *tx) {
+void handleGetPublicKey() {
+    uint8_t p1 = g_aio_buf[OFFSET_P1];
+    uint8_t p2 = g_aio_buf[OFFSET_P2];
+    uint8_t* dataBuffer = g_aio_buf + OFFSET_CDATA;
+
     uint8_t privateKeyData[32];
     uint32_t bip32Path[MAX_BIP32_PATH];
     uint32_t i;
@@ -722,13 +735,16 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
 
     if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
         PRINTF("Invalid path\n");
-        THROW(0x6a80);
+        aio_write16(0x6a80);
+        return;
     }
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
-        THROW(0x6B00);
+        aio_write16(0x6B00);
+        return;
     }
     if ((p2 != P2_CHAINCODE) && (p2 != P2_NO_CHAINCODE)) {
-        THROW(0x6B00);
+        aio_write16(0x6B00);
+        return;
     }
     for (i = 0; i < bip32PathLength; i++) {
         bip32Path[i] = (dataBuffer[0] << 24) | (dataBuffer[1] << 16) |
@@ -757,8 +773,8 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
     getICONAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
                                tmpCtx.publicKeyContext.address, &sha3);
     if (p1 == P1_NON_CONFIRM) {
-        *tx = set_result_get_publicKey();
-        THROW(0x9000);
+        set_result_get_publicKey();
+        aio_write16(0x9000);
     } else {
         // prepare for a UI based reply
         skipWarning = false;
@@ -769,7 +785,7 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
         ux_step_count = 2;
         UX_DISPLAY(ui_address_nanos, ui_address_prepro);
 
-        *flags |= IO_ASYNCH_REPLY;
+        g_aio.flags |= IO_ASYNCH_REPLY;
     }
 }
 
@@ -878,18 +894,20 @@ int parser_feed(Parser* parser, const char* p, int len) {
     return PARSER_RESULT_MORE;
 }
 
+void handleSign() {
+    uint8_t p1 = g_aio_buf[OFFSET_P1];
+    uint8_t p2 = g_aio_buf[OFFSET_P2];
+    uint8_t* workBuffer = g_aio_buf + OFFSET_CDATA;
+    uint16_t dataLength = g_aio_buf[OFFSET_LC];
 
-void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
-                uint16_t dataLength, volatile unsigned int *flags,
-                volatile unsigned int *tx) {
-    UNUSED(tx);
     uint32_t i;
     if (p1 == P1_FIRST) {
         tmpCtx.transactionContext.pathLength = workBuffer[0];
         if ((tmpCtx.transactionContext.pathLength < 0x01) ||
             (tmpCtx.transactionContext.pathLength > MAX_BIP32_PATH)) {
             PRINTF("Invalid path\n");
-            THROW(0x6a80);
+            aio_write16(0x6a80);
+            return;
         }
         workBuffer++;
         dataLength--;
@@ -903,18 +921,22 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         tmpCtx.transactionContext.txLeft =
                 (workBuffer[0] << 24) | (workBuffer[1] << 16) |
                 (workBuffer[2] << 8) | (workBuffer[3]);
-        if (tmpCtx.transactionContext.txLeft==0)
-            THROW(0x6700);
+        if (tmpCtx.transactionContext.txLeft==0) {
+            aio_write16(0x6700);
+            return;
+        }
         workBuffer += 4;
         dataLength -= 4;
         cx_sha3_init(&sha3, 256);
         parser_init(&tmpCtx.transactionContext.parser,
                 tmpCtx.transactionContext.txLeft);
     } else if (p1 != P1_MORE) {
-        THROW(0x6B00);
+        aio_write16(0x6B00);
+        return;
     }
     if (p2 != 0) {
-        THROW(0x6B00);
+        aio_write16(0x6B00);
+        return;
     }
 
     cx_hash((cx_hash_t *)&sha3, 0, workBuffer, dataLength, NULL, 0);
@@ -923,12 +945,14 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     tmpCtx.transactionContext.txLeft -= dataLength;
 
     if (tmpCtx.transactionContext.txLeft>0) {
-        THROW(0x9000);
+        aio_write16(0x9000);
+        return;
     }
 
     Parser* parser = &tmpCtx.transactionContext.parser;
     if (!parser->hasTo || !parser->hasValue || !parser->hasFee) {
-        THROW(0x6A80);
+        aio_write16(0x6A80);
+        return;
     }
 
     cx_hash((cx_hash_t *)&sha3, CX_LAST, workBuffer, 0,
@@ -937,28 +961,28 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
 
     os_memmove(fullAddress, (unsigned char *)parser->to, 43);
 
-    tostring256(&parser->value, 10, (char *)(G_io_apdu_buffer + 100), 100);
+    tostring256(&parser->value, 10, (char *)(g_aio_buf + 100), 100);
     i = 0;
-    while (G_io_apdu_buffer[100 + i]) {
+    while (g_aio_buf[100 + i]) {
         i++;
     }
     fullAmount[0] = 'I';
     fullAmount[1] = 'C';
     fullAmount[2] = 'X';
     fullAmount[3] = ' ';
-    adjustDecimals((char *)(G_io_apdu_buffer + 100), i,
+    adjustDecimals((char *)(g_aio_buf + 100), i,
             fullAmount+4, sizeof(fullAmount)-4, ICX_EXP);
 
-    tostring256(&parser->fee, 10, (char *)(G_io_apdu_buffer + 100), 100);
+    tostring256(&parser->fee, 10, (char *)(g_aio_buf + 100), 100);
     i = 0;
-    while (G_io_apdu_buffer[100 + i]) {
+    while (g_aio_buf[100 + i]) {
         i++;
     }
     fullFee[0] = 'I';
     fullFee[1] = 'C';
     fullFee[2] = 'X';
     fullFee[3] = ' ';
-    adjustDecimals((char *)(G_io_apdu_buffer + 100), i,
+    adjustDecimals((char *)(g_aio_buf + 100), i,
             fullFee+4, sizeof(fullFee)-4, ICX_EXP);
 
     skipWarning = true;
@@ -966,176 +990,78 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     ux_step_count = 5;
     UX_DISPLAY(ui_approval_nanos, ui_approval_prepro);
 
-    *flags |= IO_ASYNCH_REPLY;
+    g_aio.flags |= IO_ASYNCH_REPLY;
 }
 
-void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
-                               uint16_t dataLength,
-                               volatile unsigned int *flags,
-                               volatile unsigned int *tx) {
-    UNUSED(p1);
-    UNUSED(p2);
-    UNUSED(workBuffer);
-    UNUSED(dataLength);
-    UNUSED(flags);
-    G_io_apdu_buffer[0] = LEDGER_MAJOR_VERSION;
-    G_io_apdu_buffer[1] = LEDGER_MINOR_VERSION;
-    G_io_apdu_buffer[2] = LEDGER_PATCH_VERSION;
-    *tx = 3;
-    THROW(0x9000);
+void handleGetAppConfiguration() {
+    aio_write8(LEDGER_MAJOR_VERSION);
+    aio_write8(LEDGER_MINOR_VERSION);
+    aio_write8(LEDGER_PATCH_VERSION);
+    aio_write16(0x9000);
 }
 
-void handleSetTestPrivateKey(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
-                               uint16_t dataLength,
-                               volatile unsigned int *flags,
-                               volatile unsigned int *tx) {
-    UNUSED(p1);
-    UNUSED(p2);
-    UNUSED(flags);
-    if (dataLength!=32) {
-        THROW(0x6700);
+void handleSetTestPrivateKey() {
+    if (g_aio_buf[OFFSET_LC]!=32) {
+        aio_write16(0x6700);
+        return;
     }
-    cx_ecfp_init_private_key(CX_CURVE_256K1, workBuffer, 32, &testPrivateKey);
-    *tx = 0;
-    THROW(0x9000);
+    cx_ecfp_init_private_key(CX_CURVE_256K1, g_aio_buf+OFFSET_CDATA, 32,
+            &testPrivateKey);
+    aio_write16(0x9000);
 }
 
-void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
-    unsigned short sw = 0;
-
-    BEGIN_TRY {
-        TRY {
-            if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
-                THROW(0x6E00);
-            }
-
-            switch (G_io_apdu_buffer[OFFSET_INS]) {
-            case INS_GET_PUBLIC_KEY:
-                handleGetPublicKey(G_io_apdu_buffer[OFFSET_P1],
-                                   G_io_apdu_buffer[OFFSET_P2],
-                                   G_io_apdu_buffer + OFFSET_CDATA,
-                                   G_io_apdu_buffer[OFFSET_LC], flags, tx);
-                break;
-
-            case INS_SIGN:
-                handleSign(G_io_apdu_buffer[OFFSET_P1],
-                           G_io_apdu_buffer[OFFSET_P2],
-                           G_io_apdu_buffer + OFFSET_CDATA,
-                           G_io_apdu_buffer[OFFSET_LC], flags, tx);
-                break;
-
-            case INS_GET_APP_CONFIGURATION:
-                handleGetAppConfiguration(
-                    G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2],
-                    G_io_apdu_buffer + OFFSET_CDATA,
-                    G_io_apdu_buffer[OFFSET_LC], flags, tx);
-                break;
-
-            case INS_SET_TEST_PRIVATE_KEY:
-                handleSetTestPrivateKey(
-                    G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2],
-                    G_io_apdu_buffer + OFFSET_CDATA,
-                    G_io_apdu_buffer[OFFSET_LC], flags, tx);
-                break;
-
-            default:
-                THROW(0x6D00);
-                break;
-            }
-        }
-        CATCH(EXCEPTION_IO_RESET) {
-            THROW(EXCEPTION_IO_RESET);
-        }
-        CATCH_OTHER(e) {
-            switch (e & 0xF000) {
-            case 0x6000:
-                sw = e;
-                break;
-            case 0x9000:
-                // OK
-                sw = e;
-                break;
-            default:
-                // Internal error
-                sw = 0x6800 | (e & 0x7FF);
-                break;
-            }
-            // Unexpected exception => report
-            G_io_apdu_buffer[*tx] = sw >> 8;
-            G_io_apdu_buffer[*tx + 1] = sw;
-            *tx += 2;
-        }
-        FINALLY {
-        }
-    }
-    END_TRY;
-}
-
-/**
- * Main application loop.
- * It waits USB communication.
- */
 void app_main(void)
 {
-    volatile unsigned int rx = 0;
-    volatile unsigned int tx = 0;
-    volatile unsigned int flags = 0;
-
-    for (;;) {
-        volatile unsigned short sw = 0;
-
+    g_aio.flags = 0;
+    g_aio.rx = 0;
+    g_aio.tx = 0;
+    while (true) {
         BEGIN_TRY {
             TRY {
-                rx = tx;
-                tx = 0; // ensure no race in catch_other if io_exchange throws
-                        // an error
-                rx = io_exchange(CHANNEL_APDU | flags, rx);
-                flags = 0;
+                g_aio.rx = io_exchange(CHANNEL_APDU | g_aio.flags, g_aio.tx);
+                g_aio.flags = 0;
+                g_aio.tx = 0;
 
-                // no apdu received, well, reset the session, and reset the
-                // bootloader configuration
-                if (rx == 0) {
-                    THROW(0x6982);
+                // no apdu received
+                if (g_aio.rx == 0) {
+                    aio_write16(0x6982);
+                    continue;
                 }
 
-                handleApdu(&flags, &tx);
+                if (g_aio_buf[OFFSET_CLA] != CLA) {
+                    aio_write16(0x6E00);
+                    continue;
+                }
+
+                const uint8_t ins = g_aio_buf[OFFSET_INS];
+                if (ins==INS_GET_PUBLIC_KEY) {
+                    handleGetPublicKey();
+                } else if (ins==INS_SIGN) {
+                    handleSign();
+                } else if (ins==INS_GET_APP_CONFIGURATION) {
+                    handleGetAppConfiguration();
+#if TEST_MODE
+                } else if (ins==INS_SET_TEST_PRIVATE_KEY) {
+                    handleSetTestPrivateKey();
+#endif
+                } else {
+                    aio_write16(0x6D00);
+                }
             }
             CATCH(EXCEPTION_IO_RESET) {
                 THROW(EXCEPTION_IO_RESET);
             }
             CATCH_OTHER(e) {
-                switch (e & 0xF000) {
-                case 0x6000:
-                    // Wipe the transaction context and report the exception
-                    sw = e;
-                    break;
-                case 0x9000:
-                    // All is well
-                    sw = e;
-                    break;
-                default:
-                    // Internal error
-                    sw = 0x6800 | (e & 0x7FF);
-                    break;
-                }
-                // Unexpected exception => report
-                G_io_apdu_buffer[tx] = sw >> 8;
-                G_io_apdu_buffer[tx + 1] = sw;
-                tx += 2;
+                g_aio.tx = 0;
+                aio_write16(0x6800 | (e&0x7FF));
             }
             FINALLY {
             }
         }
         END_TRY;
     }
-
-    // return_to_dashboard:
-    return;
 }
 
-/*==============================================================================
-    Main function
-*/
 __attribute__((section(".boot"))) int main(int arg0) {
     __asm volatile("cpsie i");
     os_boot();
