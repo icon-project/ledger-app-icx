@@ -64,7 +64,7 @@ inline void aio_write16(uint16_t sw) {
     g_aio_buf[g_aio.tx++] = sw & 0xFF;
 }
 
-inline void aio_write(const char* in, int len) {
+inline void aio_write(const uint8_t* in, int len) {
     os_memmove(g_aio_buf+g_aio.tx, in, len);
     g_aio.tx += len;
 }
@@ -136,10 +136,10 @@ union {
 cx_sha3_t sha3;
 cx_ecfp_private_key_t testPrivateKey;
 
-volatile char fullAddress[43];
-volatile char fullAmount[50];
-volatile char fullFee[50];
-volatile bool skipWarning;
+char fullAddress[43];
+char fullAmount[50];
+char fullFee[50];
+bool skipWarning;
 
 /*------------------------------------------------------------------------------
  * UI Elements & APIs
@@ -801,7 +801,7 @@ static int hexValue(char digit) {
     return -1;
 }
 
-bool parseHex256(const uint8_t* hex, int len, uint256_t* target) {
+bool parseHex256(const char* hex, int len, uint256_t* target) {
     uint256_t v;
 
     if (len>64)
@@ -844,7 +844,9 @@ static PARSER_RESULT onToken(Parser* parser, const char* token, int len) {
             os_memmove(parser->to, token, 43);
         }
         parser->state = PARSER_STATE_KEY;
+        return PARSER_RESULT_OK;
     }
+    return PARSER_RESULT_ERROR;
 }
 
 void parser_init(Parser* parser, int txLen) {
@@ -854,8 +856,8 @@ void parser_init(Parser* parser, int txLen) {
     parser->feedLeft = txLen;
 }
 
-int parser_feed(Parser* parser, const char* p, int len) {
-    const char* end;
+int parser_feed(Parser* parser, const uint8_t* p, int len) {
+    const uint8_t* end;
     PARSER_RESULT res;
 
     if (parser->feedLeft < len)
