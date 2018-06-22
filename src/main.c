@@ -20,7 +20,7 @@
 #include <os_io_seproxyhal.h>
 #include "uint256.h"
 
-//#define TEST_MODE
+#define TEST_MODE   0
 
 #define MAX_BIP32_PATH 10
 
