@@ -80,7 +80,7 @@ unsigned int ux_step_count;
 
 typedef struct publicKeyContext_t {
     cx_ecfp_public_key_t publicKey;
-    uint8_t address[41];
+    uint8_t address[43];
     uint8_t chainCode[32];
     bool getChaincode;
 } publicKeyContext_t;
@@ -148,9 +148,7 @@ void set_result_get_publicKey() {
     aio_write8(65);
     aio_write(tmpCtx.publicKeyContext.publicKey.W, 65);
     aio_write8(42);
-    aio_write8('h');
-    aio_write8('x');
-    aio_write(tmpCtx.publicKeyContext.address, 40);
+    aio_write(tmpCtx.publicKeyContext.address, 42);
     if (tmpCtx.publicKeyContext.getChaincode)
         aio_write(tmpCtx.publicKeyContext.chainCode, 32);
 }
@@ -642,10 +640,12 @@ void getICONAddressStringFromBinary(uint8_t *address, uint8_t *out,
     cx_sha3_init(sha3Context, 256);
     cx_hash((cx_hash_t *)sha3Context, CX_LAST, address, 20, hashChecksum,
             sizeof(hashChecksum));
+    out[0] = 'h';
+    out[1] = 'x';
     for (i = 0; i < 40; i++) {
-        out[i] = convertDigit(address, i, hashChecksum);
+        out[i+2] = convertDigit(address, i, hashChecksum);
     }
-    out[40] = '\0';
+    out[43] = '\0';
 }
 
 void getICONAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
@@ -777,9 +777,7 @@ void handleGetPublicKey() {
     } else {
         // prepare for a UI based reply
         skipWarning = false;
-
-        snprintf(fullAddress, sizeof(fullAddress), "hx%.*s", 40,
-                 tmpCtx.publicKeyContext.address);
+        os_memmove(fullAddress, tmpCtx.publicKeyContext.address, 42);
         ux_step = 0;
         ux_step_count = 2;
         UX_DISPLAY(ui_address_nanos, ui_address_prepro);
