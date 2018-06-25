@@ -140,6 +140,49 @@ class App extends Component {
       this.setState({ error });
     }
   };
+  onTestSignTransactionLongData = async() => {
+    try {
+      this.setState({ error: null });
+      const icx = new Icx(await TransportU2F.create());
+      await icx.setTestPrivateKey("e0b18a065bb0bd663e71aff34d1bd44dbf746113968533058440eca75b061c9e");
+      // I don't know it's a right JSON format of transaction data
+      let rawTx = "icx_sendTransaction.amount.ox1234.content.0x";
+      for (let i = 0; i < 200; i++) {
+        rawTx += "1867291283973610982301923812873419826abcdef91827319263187263a732" // 64 
+      }
+      rawTx += ".contentType.application/zip.dataType.deploy." +
+        "fee.0x2386f26fc10000.from.hx6ad6f9a5adada3e484861b52378990bd6f473450." +
+        "stepLimit.0x14.timestamp.1529897548414400." +
+        "to.hx609c1c454528bae228514ceccec0c0939637a3fb.value.0xde0b6b3a7640000";
+      const { signedRawTxBase64, hashHex } = await icx.signTransaction("0'", rawTx);
+
+      let isSameSignature = false;
+      let isSameHash = false;
+      const answerSignature = btoa("08ed94735506cddba0fe935bc1246b7408915cd1eaf7fc9203fea754a0bbdae562e5c3960195d226abcb0e272ead200cf5fdebd0583dc715207db8818cea386000");
+      const answerHash = "0651e37662eab417666e8dd664b6f62a8c42e9cf9c8eaababb6727cc203d0e18";
+      if (signedRawTxBase64 == answerSignature) {
+        isSameSignature = true;
+      }
+      if (hashHex == answerHash) {
+        isSameHash = true;
+      }
+      let failMessage = "";
+      if (!isSameSignature) {
+        failMessage += "wrong signature ('" + signedRawTxBase64 + "' should be '" + answerSignature + "'.)" ;
+      }
+      else if (!isSameHash) {
+        failMessage += "wrong hash ('" + hashHex + "' should be '" + answerHash + "'.)" ;
+      }
+      if (failMessage.length > 0) {
+        this.setState({ error: "FAIL: " + failMessage });
+      }
+      else {
+        this.setState({ result: resultText });
+      }
+    } catch (error) {
+      this.setState({ error });
+    }
+  };
   // TODO: Added clear button because I don't know how to change result text
   // to "waiting..." before the result comes out.
   // TODO: Couldn't find how to show multi line text for the result. Now it
@@ -193,6 +236,16 @@ class App extends Component {
               <li>
                 <button className="action" onClick={this.onTestSignTransaction}>
                   verify signature and hash from signTransaction()
+                </button>
+                <ul>
+                  <li>check tx info on Ledger display and confirm</li>
+                </ul>
+              </li>
+            </ul>
+            <ul>
+              <li>
+                <button className="action" onClick={this.onTestSignTransactionLongData}>
+                  verify a long data (>2K) from signTransaction()
                 </button>
                 <ul>
                   <li>check tx info on Ledger display and confirm</li>
