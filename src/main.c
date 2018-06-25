@@ -86,22 +86,26 @@ typedef struct publicKeyContext_t {
 } publicKeyContext_t;
 
 enum {
-    PARSER_BUF_SIZE = 64+2,
+    PARSER_BUF_SIZE = 128,
     ICX_EXP = 18,
-    TEST_BIP32 = 0x80000000
+    TEST_BIP32 = 0x80000000,
+    PARSER_STATE_KEY_FLAG = 0x100,
+    PARSER_STATE_VALUE_FLAG = 0x200,
 };
 
 typedef enum {
     PARSER_STATE_PREFIX,
-    PARSER_STATE_KEY,
-    PARSER_STATE_VALUE
+    PARSER_STATE_KEY            = PARSER_STATE_KEY_FLAG,
+    PARSER_STATE_KEY_IGNORE,
+    PARSER_STATE_VALUE_FEE      = PARSER_STATE_VALUE_FLAG,
+    PARSER_STATE_VALUE_TO,
+    PARSER_STATE_VALUE_VALUE,
+    PARSER_STATE_VALUE_IGNORE
 } PARSER_STATE;
 
 typedef struct {
     PARSER_STATE state;
     char* wp;           //  write position
-    char* ltoken;       //  last token
-    int feedLeft;
     char buf[PARSER_BUF_SIZE];
 
     bool hasTo;
@@ -113,12 +117,6 @@ typedef struct {
     bool hasFee;
     uint256_t fee;
 } Parser;
-
-typedef enum {
-    PARSER_RESULT_MORE,
-    PARSER_RESULT_OK,
-    PARSER_RESULT_ERROR
-} PARSER_RESULT;
 
 typedef struct transactionContext_t {
     uint8_t pathLength;
@@ -822,79 +820,84 @@ bool parseHex256(const char* hex, int len, uint256_t* target) {
     return true;
 }
 
-static PARSER_RESULT onToken(Parser* parser, const char* token, int len) {
+static int onPartialToken(Parser* parser, const char* partial, int len) {
+    if (parser->state==PARSER_STATE_PREFIX) {
+        return -1;
+    } else if (parser->state&PARSER_STATE_KEY_FLAG) {
+        parser->state = PARSER_STATE_KEY_IGNORE;
+    } else if (parser->state&PARSER_STATE_VALUE_FLAG) {
+        parser->state = PARSER_STATE_VALUE_IGNORE;
+    }
+    return 0;
+}
+
+static int onTokenEnd(Parser* parser, const char* token, int len) {
     if (parser->state==PARSER_STATE_PREFIX) {
         if (len!=19 || os_memcmp(token, "icx_sendTransaction", 19)!=0)
-            return PARSER_RESULT_ERROR;
-        parser->state = PARSER_STATE_KEY;
-        return PARSER_RESULT_OK;
+            return -1;
     } else if (parser->state==PARSER_STATE_KEY) {
-        parser->state = PARSER_STATE_VALUE;
-        return PARSER_RESULT_MORE;
-    } else if (parser->state==PARSER_STATE_VALUE) {
-        const char* key = parser->buf;
-        int keyLen = parser->ltoken - parser->buf - 1;
-        if (keyLen==3 && os_memcmp(key, "fee", 3)==0) {
-            parser->hasFee = true;
-            parseHex256(token+2, len-2, &parser->fee);
-        } else if (keyLen==5 && os_memcmp(key, "value", 5)==0) {
-            parser->hasValue = true;
-            parseHex256(token+2, len-2, &parser->value);
-        } else if (keyLen==2 && os_memcmp(key, "to", 2)==0) {
-            parser->hasTo = true;
-            os_memmove(parser->to, token, 43);
+        if (len==3 && os_memcmp(token, "fee", 3)==0) {
+            parser->state = PARSER_STATE_VALUE_FEE;
+        } else if (len==5 && os_memcmp(token, "value", 5)==0) {
+            parser->state = PARSER_STATE_VALUE_VALUE;
+        } else if (len==2 && os_memcmp(token, "to", 2)==0) {
+            parser->state = PARSER_STATE_VALUE_TO;
+        } else {
+            parser->state = PARSER_STATE_VALUE_IGNORE;
         }
-        parser->state = PARSER_STATE_KEY;
-        return PARSER_RESULT_OK;
+        return 0;
+    } else if (parser->state==PARSER_STATE_VALUE_FEE) {
+        parser->hasFee = true;
+        parseHex256(token+2, len-2, &parser->fee);
+    } else if (parser->state==PARSER_STATE_VALUE_VALUE) {
+        parser->hasValue = true;
+        parseHex256(token+2, len-2, &parser->value);
+    } else if (parser->state==PARSER_STATE_VALUE_TO) {
+        parser->hasTo = true;
+        os_memmove(parser->to, token, 43);
     }
-    return PARSER_RESULT_ERROR;
+    parser->state = PARSER_STATE_KEY;
+    return 0;
 }
 
-void parser_init(Parser* parser, int txLen) {
+void parser_init(Parser* parser) {
     parser->state = PARSER_STATE_PREFIX;
     parser->wp = parser->buf;
-    parser->ltoken = parser->buf;
-    parser->feedLeft = txLen;
 }
 
-int parser_feed(Parser* parser, const uint8_t* p, int len) {
-    const uint8_t* end;
-    PARSER_RESULT res;
+inline const char* parser_endOfBuf(Parser* parser) {
+    return parser->buf + PARSER_BUF_SIZE;
+}
 
-    if (parser->feedLeft < len)
-        len = parser->feedLeft;
-    end = p+len;
+int parser_feed(Parser* parser, const uint8_t *p, int len) {
+    const uint8_t* end = p+len;
 
     while (p<end) {
         if (*p=='.') {
-            *(parser->wp)++ = 0;
-            res = onToken(parser, parser->ltoken,
-                    parser->wp - parser->ltoken - 1);
-            if (res==PARSER_RESULT_ERROR) {
-                return PARSER_RESULT_ERROR;
-            } else if (res==PARSER_RESULT_MORE) {
-                parser->ltoken = parser->wp;
-                ++p;
-                continue;
-            } else {
-                parser->wp = parser->buf;
-                parser->ltoken = parser->buf;
-                ++p;
-                continue;
-            }
+            *parser->wp = 0;
+            ++p;
+            if (onTokenEnd(parser, parser->buf, parser->wp - parser->buf)<0)
+                return -1;
+            parser->wp = parser->buf;
+            continue;
         }
         *(parser->wp)++ = *p++;
+        if (parser->wp == parser->buf + PARSER_BUF_SIZE) {
+            if (onPartialToken(parser, parser->buf, parser->wp - parser->buf)<0)
+                return -1;
+            parser->wp = parser->buf;
+        }
     }
+    return 0;
+}
 
-    if (parser->feedLeft == len) {
-        *(parser->wp)++ = 0;
-        res = onToken(parser, parser->ltoken, parser->wp - parser->ltoken - 1);
-        if (res==PARSER_RESULT_MORE)
-            return PARSER_RESULT_ERROR;
-        return res;
+int parser_endFeed(Parser* parser) {
+    if (parser->wp > parser->buf) {
+        *parser->wp = 0;
+        if (onTokenEnd(parser, parser->buf, parser->wp - parser->buf)<0)
+            return -1;
     }
-    parser->feedLeft -= len;
-    return PARSER_RESULT_MORE;
+    return 0;
 }
 
 void handleSign() {
@@ -931,8 +934,7 @@ void handleSign() {
         workBuffer += 4;
         dataLength -= 4;
         cx_sha3_init(&sha3, 256);
-        parser_init(&tmpCtx.transactionContext.parser,
-                tmpCtx.transactionContext.txLeft);
+        parser_init(&tmpCtx.transactionContext.parser);
     } else if (p1 != P1_MORE) {
         aio_write16(0x6B00);
         return;
@@ -951,6 +953,7 @@ void handleSign() {
         aio_write16(0x9000);
         return;
     }
+    parser_endFeed(&tmpCtx.transactionContext.parser);
 
     Parser* parser = &tmpCtx.transactionContext.parser;
     if (!parser->hasTo || !parser->hasValue || !parser->hasFee) {
