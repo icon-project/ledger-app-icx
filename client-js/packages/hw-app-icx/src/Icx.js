@@ -204,6 +204,6 @@ export default class Icx {
     for (let i = 0; i < privateKeyHex.length; i += 2) {
       data[i / 2] = parseInt(privateKeyHex.substr(i, 2), 16);
     }
-    this.transport.send(0xe0, 0xff, 0x00, 0x00, data).then();
+    return this.transport.send(0xe0, 0xff, 0x00, 0x00, data).then();
   }
 }
