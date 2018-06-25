@@ -10,9 +10,27 @@ class App extends Component {
     result: null,
     error: null
   };
+
+  clear = () => {
+    this.setState({ result: null });
+    this.setState({ error: null });
+  };
+  showProcessing = () => {
+    this.setState({ error: null });
+    this.setState({ result: "processing..." });
+  };
+  showTestResult = (failMessage: string) => {
+    if (failMessage.length > 0) {
+      this.setState({ error: "FAIL: " + failMessage });
+    }
+    else {
+      this.setState({ result: "PASS" });
+    }
+  }
+
   onBtcGetAddress = async () => {
     try {
-      this.setState({ error: null });
+      this.showProcessing();
       const transport = await TransportU2F.create();
       transport.setDebugMode(true);
       const btc = new Btc(transport);
@@ -25,7 +43,7 @@ class App extends Component {
 
   onGetAddress = async () => {
     try {
-      this.setState({ error: null });
+      this.showProcessing();
       const icx = new Icx(await TransportU2F.create());
       const { publicKey, address, chainCode } = await icx.getAddress("44'/4801368'/0'/0'/0'", false, true);
       const resultText = "[publicKey=" + publicKey + "],[address=" + address + "],[chainCode=" + chainCode + "]";
@@ -36,7 +54,7 @@ class App extends Component {
   };
   onSignTransaction = async () => {
     try {
-      this.setState({ error: null });
+      this.showProcessing();
       const icx = new Icx(await TransportU2F.create());
       const path = "44'/4801368'/0'/0'/0'";
       const rawTx = 
@@ -53,7 +71,7 @@ class App extends Component {
   };
   onGetAppConfiguration = async () => {
     try {
-      this.setState({ error: null });
+      this.showProcessing();
       const icx = new Icx(await TransportU2F.create());
       const {
         majorVersion,
@@ -70,7 +88,7 @@ class App extends Component {
   };
   onTestGetAddress = async() => {
     try {
-      this.setState({ error: null });
+      this.showProcessing();
       const icx = new Icx(await TransportU2F.create());
       await icx.setTestPrivateKey("23498dc21b9ee52e63e8d6566e0911ac255a38d3fcbc68a51e6b298520b72d6e");
       const { publicKey, address, chainCode } = await icx.getAddress("0'", true, false);
@@ -92,19 +110,14 @@ class App extends Component {
       else if (!isSameAddress) {
         failMessage += "wrong address ('" + address + "' should be '" + answerAddress + "'.)" ;
       }
-      if (failMessage.length > 0) {
-        this.setState({ error: "FAIL: " + failMessage });
-      }
-      else {
-        this.setState({ result: "PASS" });
-      }
+      this.showTestResult(failMessage);
     } catch (error) {
       this.setState({ error });
     }
   };
   onTestSignTransaction = async() => {
     try {
-      this.setState({ error: null });
+      this.showProcessing();
       const icx = new Icx(await TransportU2F.create());
       await icx.setTestPrivateKey("ac7d849f0f232c3b01818d43b0323e31d4aec933aeb7681595215ea98ab70c20");
       const rawTx =
@@ -130,19 +143,14 @@ class App extends Component {
       else if (!isSameHash) {
         failMessage += "wrong hash ('" + hashHex + "' should be '" + answerHash + "'.)" ;
       }
-      if (failMessage.length > 0) {
-        this.setState({ error: "FAIL: " + failMessage });
-      }
-      else {
-        this.setState({ result: resultText });
-      }
+      this.showTestResult(failMessage);
     } catch (error) {
       this.setState({ error });
     }
   };
   onTestSignTransactionLongData = async() => {
     try {
-      this.setState({ error: null });
+      this.showProcessing();
       const icx = new Icx(await TransportU2F.create());
       await icx.setTestPrivateKey("e0b18a065bb0bd663e71aff34d1bd44dbf746113968533058440eca75b061c9e");
       // I don't know it's a right JSON format of transaction data
@@ -173,23 +181,13 @@ class App extends Component {
       else if (!isSameHash) {
         failMessage += "wrong hash ('" + hashHex + "' should be '" + answerHash + "'.)" ;
       }
-      if (failMessage.length > 0) {
-        this.setState({ error: "FAIL: " + failMessage });
-      }
-      else {
-        this.setState({ result: resultText });
-      }
+      this.showTestResult(failMessage);
     } catch (error) {
       this.setState({ error });
     }
   };
-  // TODO: Added clear button because I don't know how to change result text
-  // to "waiting..." before the result comes out.
-  // TODO: Couldn't find how to show multi line text for the result. Now it
-  // just display it a sinlge long line.
   onClear = async() => {
-    this.setState({ error: null });
-    this.setState({ result: null });
+    this.clear();
   };
 
   render() {
