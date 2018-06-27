@@ -861,6 +861,9 @@ static int onTokenEnd(Parser* parser, const char* token, int len) {
 void parser_init(Parser* parser) {
     parser->state = PARSER_STATE_PREFIX;
     parser->wp = parser->buf;
+    parser->hasFee = false;
+    parser->hasTo = false;
+    parser->hasValue = false;
 }
 
 inline const char* parser_endOfBuf(Parser* parser) {
