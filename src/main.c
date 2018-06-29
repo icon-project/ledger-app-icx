@@ -144,6 +144,7 @@ union {
 cx_sha3_t sha3;
 cx_ecfp_private_key_t testPrivateKey;
 
+bool g_isSigning;
 char fullAddress[43];
 char fullAmount[50];
 char feeName[10];
@@ -497,6 +498,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, g_aio.tx);
     // Display back the original UX
     ui_idle();
+    g_isSigning = false;
     return 0; // do not redraw the widget
 }
 
@@ -506,6 +508,7 @@ unsigned int io_seproxyhal_touch_tx_cancel(const bagl_element_t *e) {
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     // Display back the original UX
     ui_idle();
+    g_isSigning = false;
     return 0; // do not redraw the widget
 }
 
@@ -743,6 +746,11 @@ void handleGetPublicKey() {
     uint8_t bip32PathLength = *(dataBuffer++);
     cx_ecfp_private_key_t privateKey;
 
+    if (g_isSigning) {
+        //  invalid state
+        aio_write16(0x6000);
+        return;
+    }
     if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
         PRINTF("Invalid path\n");
         aio_write16(0x6a80);
@@ -992,6 +1000,7 @@ void handleSign() {
             (tmpCtx.transactionContext.pathLength > MAX_BIP32_PATH)) {
             PRINTF("Invalid path\n");
             aio_write16(0x6a80);
+            g_isSigning = false;
             return;
         }
         workBuffer++;
@@ -1008,6 +1017,7 @@ void handleSign() {
                 (workBuffer[2] << 8) | (workBuffer[3]);
         if (tmpCtx.transactionContext.txLeft==0) {
             aio_write16(0x6700);
+            g_isSigning = false;
             return;
         }
         workBuffer += 4;
@@ -1016,10 +1026,16 @@ void handleSign() {
         parser_init(&tmpCtx.transactionContext.parser);
     } else if (p1 != P1_MORE) {
         aio_write16(0x6B00);
+        g_isSigning = false;
+        return;
+    }
+    if (p1 == P1_MORE && !g_isSigning) {
+        aio_write16(0x6000);
         return;
     }
     if (p2 != 0) {
         aio_write16(0x6B00);
+        g_isSigning = false;
         return;
     }
 
@@ -1030,6 +1046,7 @@ void handleSign() {
 
     if (tmpCtx.transactionContext.txLeft>0) {
         aio_write16(0x9000);
+        g_isSigning = true;
         return;
     }
     parser_endFeed(&tmpCtx.transactionContext.parser);
@@ -1037,6 +1054,7 @@ void handleSign() {
     Parser* parser = &tmpCtx.transactionContext.parser;
     if (!parser->hasTo || !parser->hasValue) {
         aio_write16(0x6A80);
+        g_isSigning = false;
         return;
     }
     uint32_t version = 0x02;
@@ -1044,11 +1062,13 @@ void handleSign() {
         version = parser->version;
     if (version!=0x02 && version!=0x03) {
         aio_write16(0x6A80);
+        g_isSigning = false;
         return;
     }
     if ((version==0x03 && !parser->hasStepLimit) ||
             (version==0x02 && !parser->hasFee)) {
         aio_write16(0x6A80);
+        g_isSigning = false;
         return;
     }
 
@@ -1117,6 +1137,7 @@ void handleSetTestPrivateKey() {
 
 void app_main(void)
 {
+    g_isSigning = false;
     g_aio.flags = 0;
     g_aio.rx = 0;
     g_aio.tx = 0;
