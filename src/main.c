@@ -743,6 +743,7 @@ void handleGetPublicKey() {
     uint8_t privateKeyData[32];
     uint32_t bip32Path[MAX_BIP32_PATH];
     uint32_t i;
+    uint32_t lc = g_aio_buf[OFFSET_LC];
     uint8_t bip32PathLength = *(dataBuffer++);
     cx_ecfp_private_key_t privateKey;
 
@@ -754,6 +755,10 @@ void handleGetPublicKey() {
     if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
         PRINTF("Invalid path\n");
         aio_write16(0x6A80);
+        return;
+    }
+    if (lc < 1+bip32PathLength*4) {
+        aio_write16(0x6700);
         return;
     }
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
@@ -796,7 +801,7 @@ void handleGetPublicKey() {
     } else {
         // prepare for a UI based reply
         skipWarning = false;
-        os_memmove(fullAddress, tmpCtx.publicKeyContext.address, 42);
+        os_memmove(fullAddress, tmpCtx.publicKeyContext.address, 43);
         ux_step = 0;
         ux_step_count = 2;
         UX_DISPLAY(ui_address_nanos, ui_address_prepro);
@@ -999,10 +1004,11 @@ void handleSign() {
         if ((tmpCtx.transactionContext.pathLength < 0x01) ||
             (tmpCtx.transactionContext.pathLength > MAX_BIP32_PATH)) {
             PRINTF("Invalid path\n");
-            aio_write16(0x6a80);
+            aio_write16(0x6A80);
             g_isSigning = false;
             return;
         }
+        if (dataLength < 1+tmpCtx.transactionContext.pathLength*4+4)
         workBuffer++;
         dataLength--;
         for (i = 0; i < tmpCtx.transactionContext.pathLength; i++) {
@@ -1039,6 +1045,8 @@ void handleSign() {
         return;
     }
 
+    if (dataLength > tmpCtx.transactionContext.txLeft)
+        dataLength = tmpCtx.transactionContext.txLeft;
     cx_hash((cx_hash_t *)&sha3, 0, workBuffer, dataLength, NULL, 0);
     parser_feed(&tmpCtx.transactionContext.parser,
             workBuffer, dataLength);
