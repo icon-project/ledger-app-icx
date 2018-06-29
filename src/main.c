@@ -98,13 +98,17 @@ typedef enum {
     PARSER_STATE_KEY            = PARSER_STATE_KEY_FLAG,
     PARSER_STATE_KEY_IGNORE,
     PARSER_STATE_VALUE_FEE      = PARSER_STATE_VALUE_FLAG,
+    PARSER_STATE_VALUE_STEP_LIMIT,
     PARSER_STATE_VALUE_TO,
     PARSER_STATE_VALUE_VALUE,
+    PARSER_STATE_VALUE_VERSION,
     PARSER_STATE_VALUE_IGNORE
 } PARSER_STATE;
 
 typedef struct {
     PARSER_STATE state;
+    int nestingLevel;
+    bool isEscaping;
     char* wp;           //  write position
     char buf[PARSER_BUF_SIZE];
 
@@ -116,6 +120,12 @@ typedef struct {
 
     bool hasFee;
     uint256_t fee;
+
+    bool hasStepLimit;
+    uint256_t stepLimit;
+
+    bool hasVersion;
+    uint32_t version;
 } Parser;
 
 typedef struct transactionContext_t {
@@ -136,6 +146,7 @@ cx_ecfp_private_key_t testPrivateKey;
 
 char fullAddress[43];
 char fullAmount[50];
+char feeName[10];
 char fullFee[50];
 bool skipWarning;
 
@@ -334,7 +345,7 @@ const bagl_element_t ui_approval_nanos[] = {
 
     {{BAGL_LABELINE, 0x05, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "Fee",
+     feeName,
      0,
      0,
      0,
@@ -798,6 +809,18 @@ static int hexValue(char digit) {
     return -1;
 }
 
+bool parseHex32(const char* hex, int len, uint32_t* target) {
+    *target = 0;
+
+    for (int i=0; i<len; ++i) {
+        int d = hexValue(hex[i]);
+        if (d<0)
+            return false;
+        *target = (*target<<4) | d;
+    }
+    return true;
+}
+
 bool parseHex256(const char* hex, int len, uint256_t* target) {
     uint256_t v;
 
@@ -829,6 +852,15 @@ static int onPartialToken(Parser* parser, const char* partial, int len) {
     return 0;
 }
 
+bool isValidHex(const char* p, int len) {
+    if (p[0]!='0' || p[1]!='x')
+        return false;
+    for (int i=2; i<len; ++i)
+        if ( hexValue(p[i])<0 )
+            return false;
+    return true;
+}
+
 static int onTokenEnd(Parser* parser, const char* token, int len) {
     if (parser->state==PARSER_STATE_PREFIX) {
         if (len!=19 || os_memcmp(token, "icx_sendTransaction", 19)!=0)
@@ -836,8 +868,12 @@ static int onTokenEnd(Parser* parser, const char* token, int len) {
     } else if (parser->state==PARSER_STATE_KEY) {
         if (len==3 && os_memcmp(token, "fee", 3)==0) {
             parser->state = PARSER_STATE_VALUE_FEE;
+        } else if (len==9 && os_memcmp(token, "stepLimit", 9)==0) {
+            parser->state = PARSER_STATE_VALUE_STEP_LIMIT;
         } else if (len==5 && os_memcmp(token, "value", 5)==0) {
             parser->state = PARSER_STATE_VALUE_VALUE;
+        } else if (len==7 && os_memcmp(token, "version", 7)==0) {
+            parser->state = PARSER_STATE_VALUE_VERSION;
         } else if (len==2 && os_memcmp(token, "to", 2)==0) {
             parser->state = PARSER_STATE_VALUE_TO;
         } else {
@@ -845,12 +881,36 @@ static int onTokenEnd(Parser* parser, const char* token, int len) {
         }
         return 0;
     } else if (parser->state==PARSER_STATE_VALUE_FEE) {
+        if (len > 34)
+            return -1;
+        if (!isValidHex(token, len))
+            return -1;
         parser->hasFee = true;
         parseHex256(token+2, len-2, &parser->fee);
+    } else if (parser->state==PARSER_STATE_VALUE_STEP_LIMIT) {
+        if (len > 34)
+            return -1;
+        if (!isValidHex(token, len))
+            return -1;
+        parser->hasStepLimit = true;
+        parseHex256(token+2, len-2, &parser->stepLimit);
     } else if (parser->state==PARSER_STATE_VALUE_VALUE) {
+        if (len > 34)
+            return -1;
+        if (!isValidHex(token, len))
+            return -1;
         parser->hasValue = true;
         parseHex256(token+2, len-2, &parser->value);
+    } else if (parser->state==PARSER_STATE_VALUE_VERSION) {
+        if (len > 10)
+            return -1;
+        if (!isValidHex(token, len))
+            return -1;
+        parser->hasVersion = true;
+        parseHex32(token+2, len-2, &parser->version);
     } else if (parser->state==PARSER_STATE_VALUE_TO) {
+        if (len > 42)
+            return -1;
         parser->hasTo = true;
         os_memmove(parser->to, token, 43);
     }
@@ -860,10 +920,14 @@ static int onTokenEnd(Parser* parser, const char* token, int len) {
 
 void parser_init(Parser* parser) {
     parser->state = PARSER_STATE_PREFIX;
+    parser->nestingLevel = 0;
+    parser->isEscaping = true;
     parser->wp = parser->buf;
     parser->hasFee = false;
+    parser->hasStepLimit = false;
     parser->hasTo = false;
     parser->hasValue = false;
+    parser->hasVersion = false;
 }
 
 inline const char* parser_endOfBuf(Parser* parser) {
@@ -874,13 +938,27 @@ int parser_feed(Parser* parser, const uint8_t *p, int len) {
     const uint8_t* end = p+len;
 
     while (p<end) {
-        if (*p=='.') {
-            *parser->wp = 0;
-            ++p;
-            if (onTokenEnd(parser, parser->buf, parser->wp - parser->buf)<0)
-                return -1;
-            parser->wp = parser->buf;
-            continue;
+        if (parser->isEscaping) {
+            parser->isEscaping = false;
+        } else {
+            if (*p=='\\') {
+                parser->isEscaping = true;
+                ++p;
+                continue;
+            } else if (*p=='.' && parser->nestingLevel==0) {
+                *parser->wp = 0;
+                ++p;
+                if (onTokenEnd(parser, parser->buf, parser->wp - parser->buf)<0)
+                    return -1;
+                parser->wp = parser->buf;
+                continue;
+            } else if (*p=='{' || *p=='[') {
+                ++(parser->nestingLevel);
+                ++p;
+            } else if (*p=='}' || *p==']') {
+                --(parser->nestingLevel);
+                ++p;
+            }
         }
         *(parser->wp)++ = *p++;
         if (parser->wp == parser->buf + PARSER_BUF_SIZE) {
@@ -957,7 +1035,19 @@ void handleSign() {
     parser_endFeed(&tmpCtx.transactionContext.parser);
 
     Parser* parser = &tmpCtx.transactionContext.parser;
-    if (!parser->hasTo || !parser->hasValue || !parser->hasFee) {
+    if (!parser->hasTo || !parser->hasValue) {
+        aio_write16(0x6A80);
+        return;
+    }
+    uint32_t version = 0x02;
+    if (parser->hasVersion)
+        version = parser->version;
+    if (version!=0x02 && version!=0x03) {
+        aio_write16(0x6A80);
+        return;
+    }
+    if ((version==0x03 && !parser->hasStepLimit) ||
+            (version==0x02 && !parser->hasFee)) {
         aio_write16(0x6A80);
         return;
     }
@@ -980,17 +1070,25 @@ void handleSign() {
     adjustDecimals((char *)(g_aio_buf + 100), i,
             fullAmount+4, sizeof(fullAmount)-4, ICX_EXP);
 
-    tostring256(&parser->fee, 10, (char *)(g_aio_buf + 100), 100);
-    i = 0;
-    while (g_aio_buf[100 + i]) {
-        i++;
+    if (version==0x03) {
+        os_memmove(feeName, "StepLimit", 10);
+        tostring256(&parser->stepLimit, 10, fullFee, sizeof(fullFee));
+    } else {
+        os_memmove(feeName, "Fee", 4);
+        tostring256(&parser->fee, 10, (char *)(g_aio_buf + 100), 100);
+        i = 0;
+        while (g_aio_buf[100 + i]) {
+            i++;
+        }
+        if (version==0x02) {
+            fullFee[0] = 'I';
+            fullFee[1] = 'C';
+            fullFee[2] = 'X';
+            fullFee[3] = ' ';
+        }
+        adjustDecimals((char *)(g_aio_buf + 100), i,
+                fullFee+4, sizeof(fullFee)-4, ICX_EXP);
     }
-    fullFee[0] = 'I';
-    fullFee[1] = 'C';
-    fullFee[2] = 'X';
-    fullFee[3] = ' ';
-    adjustDecimals((char *)(g_aio_buf + 100), i,
-            fullFee+4, sizeof(fullFee)-4, ICX_EXP);
 
     skipWarning = true;
     ux_step = 0;
