@@ -145,7 +145,7 @@ cx_sha3_t sha3;
 cx_ecfp_private_key_t testPrivateKey;
 
 bool g_isSigning;
-char fullAddress[43];
+char fullAddress[44];
 char fullAmount[50];
 char feeName[10];
 char fullFee[50];
@@ -802,6 +802,8 @@ void handleGetPublicKey() {
         // prepare for a UI based reply
         skipWarning = false;
         os_memmove(fullAddress, tmpCtx.publicKeyContext.address, 43);
+        fullAddress[42] = ' ';
+        fullAddress[43] = '\0';
         ux_step = 0;
         ux_step_count = 2;
         UX_DISPLAY(ui_address_nanos, ui_address_prepro);
@@ -1089,6 +1091,8 @@ void handleSign() {
             sizeof(tmpCtx.transactionContext.hash));
 
     os_memmove(fullAddress, (unsigned char *)parser->to, 43);
+    fullAddress[42] = ' ';
+    fullAddress[43] = '\0';
 
     tostring256(&parser->value, 10, (char *)(g_aio_buf + 100), 100);
     i = 0;
