@@ -119,17 +119,17 @@ class App extends Component {
     try {
       this.showProcessing();
       const icx = new Icx(await TransportU2F.create());
-      await icx.setTestPrivateKey("ac7d849f0f232c3b01818d43b0323e31d4aec933aeb7681595215ea98ab70c20");
+      await icx.setTestPrivateKey("c8e2edf81129f07720ed5ae36311316fb84ac6f7ddbc0f175f9df5848ad431ed");
       const rawTx =
-        "icx_sendTransaction.free.0x2386f26fc10000." +
-        "from.hx5f1238f18eb87fc23a9d5fb1bb89250889108f24.timestamp.1529629661544678." +
-        "to.hx3690276e8703d6d96b54d171bfd265dd8d60c016.value.0xde0b6b3a7640000";
+        "icx_sendTransaction.fee.0x2386f26fc10000" + 
+        ".from.hx36f93789103fa3b5da3d40c13d08c2ca2457ca86.timestamp.1530259517236639" + 
+        ".to.hx30d027ff0b2e52645861d85efb04896127ec166e.value.0xde0b6b3a7640000";
       const { signedRawTxBase64, hashHex } = await icx.signTransaction("0'", rawTx);
 
       let isSameSignature = false;
       let isSameHash = false;
-      const answerSignature = btoa("e888e700d8b49eee479d16a6d5374b56ab6243de38751e4fc3f779f21a48c5d45e89e351fc1a6e7536ecf1e35f15b8309ec6fefc4356d66fd16c2845c838302a01");
-      const answerHash = "3c296ae34bf73c32fdfb208f0b2b185daf33928e65141caed3aae8d75cade5f6";
+      const answerSignature = btoa("efc780adffc77b4fad0a18a3df5203128e69494e3abfc5f113e6d16b32ab0fd9204e97cdbcd61cd70997138ae74312b5b04945e38d67cfc2a9352af28b3599f300");
+      const answerHash = "72f26c66527755484d4a9877457b7092827cad9ece8685ce392ebeccf17babad";
       if (signedRawTxBase64 == answerSignature) {
         isSameSignature = true;
       }
