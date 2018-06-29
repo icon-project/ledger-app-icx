@@ -753,7 +753,7 @@ void handleGetPublicKey() {
     }
     if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
         PRINTF("Invalid path\n");
-        aio_write16(0x6a80);
+        aio_write16(0x6A80);
         return;
     }
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
