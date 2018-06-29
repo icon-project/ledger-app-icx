@@ -659,7 +659,7 @@ void getICONAddressStringFromBinary(uint8_t *address, uint8_t *out,
     for (i = 0; i < 40; i++) {
         out[i+2] = convertDigit(address, i, hashChecksum);
     }
-    out[43] = '\0';
+    out[42] = '\0';
 }
 
 void getICONAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
