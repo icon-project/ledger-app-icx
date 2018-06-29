@@ -1008,7 +1008,11 @@ void handleSign() {
             g_isSigning = false;
             return;
         }
-        if (dataLength < 1+tmpCtx.transactionContext.pathLength*4+4)
+        if (dataLength < 1+tmpCtx.transactionContext.pathLength*4+4) {
+            aio_write16(0x6700);
+            g_isSigning = false;
+            return;
+        }
         workBuffer++;
         dataLength--;
         for (i = 0; i < tmpCtx.transactionContext.pathLength; i++) {
