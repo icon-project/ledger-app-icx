@@ -69,6 +69,25 @@ class App extends Component {
       this.setState({ error });
     }
   };
+  onSignTransactionV3 = async () => {
+    try {
+      this.showProcessing();
+      const icx = new Icx(await TransportU2F.create());
+      const path = "44'/4801368'/0'/0'/0'";
+      const rawTx =
+        "icx_sendTransaction." +
+        "stepLimit.0xff." +
+        "from.hxc9ecad30b05a0650a337452fce031e0c60eacc3a.nonce.0x3." +
+        "to.hx4c5101add2caa6a920420cf951f7dd7c7df6ca24.value.0xde0b6b3a7640000." +
+        "version.0x3";
+      const { signedRawTxBase64, hashHex } =
+        await icx.signTransaction(path, rawTx);
+      const resultText = "[signature=" + signedRawTxBase64 + "],[hash=" + hashHex + "]";
+      this.setState({ result: resultText });
+    } catch (error) {
+      this.setState({ error });
+    }
+  };
   onGetAppConfiguration = async () => {
     try {
       this.showProcessing();
@@ -207,7 +226,15 @@ class App extends Component {
                   signTransaction()
                 </button>
                 <ul>
-                  <li>check tx info on Ledger display and confirm</li>
+                  <li>check tx info on Ledger display and confirm. amount=1, fee=0x01=</li>
+                </ul>
+              </li>
+              <li>
+                <button className="action" onClick={this.onSignTransactionV3}>
+                  signTransactionV3()
+                </button>
+                <ul>
+                  <li>check tx info on Ledger display and confirm. amount=1, stepLimit=255</li>
                 </ul>
               </li>
               <li>
