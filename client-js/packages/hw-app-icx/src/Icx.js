@@ -17,7 +17,7 @@
 //@flow
 
 // FIXME drop:
-import { splitPath, foreach } from "./utils";
+import { splitPath, foreach, hexToBase64 } from "./utils";
 import type Transport from "@ledgerhq/hw-transport";
 
 /**
@@ -42,7 +42,6 @@ export default class Icx {
       ],
       "ICON"
     );
-    transport.setDebugMode(true);
   }
 
   /**
@@ -57,8 +56,8 @@ export default class Icx {
    */
   getAddress(
     path: string,
-    boolDisplay?: boolean,
-    boolChaincode?: boolean
+    boolDisplay?: boolean = false,
+    boolChaincode?: boolean = true
   ): Promise<{
     publicKey: string,
     address: string,
@@ -148,7 +147,7 @@ export default class Icx {
       let result = {};
       // r, s, v are aligned sequencially
       result.signedRawTxBase64 = 
-        btoa(response.slice(0, 32 + 32 + 1).toString("hex"));
+        hexToBase64(response.slice(0, 32 + 32 + 1).toString("hex"));
       result.hashHex = 
         response.slice(32 + 32 + 1, 32 + 32 + 1 + 32).toString("hex");
       return result;

@@ -98,3 +98,9 @@ export function asyncWhile<T>(
   }
   return Promise.resolve([]).then(iterate);
 }
+
+export function hexToBase64(hexString: string) {
+  return btoa(hexString.match(/\w{2}/g).map(function(a) {
+      return String.fromCharCode(parseInt(a, 16));
+  }).join(""));
+}

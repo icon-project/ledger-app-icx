@@ -28,6 +28,12 @@ class App extends Component {
     }
   }
 
+  hexToBase64 = (hexString: string) => {
+    return btoa(hexString.match(/\w{2}/g).map(function(a) {
+      return String.fromCharCode(parseInt(a, 16));
+    }).join("")); 
+  }
+
   onBtcGetAddress = async () => {
     try {
       this.showProcessing();
@@ -41,11 +47,18 @@ class App extends Component {
     }
   };
 
+  createIcx = async (timeout?: number = 30000): Icx => {
+    const transport = await TransportU2F.create();
+    transport.setDebugMode(true);
+    transport.setExchangeTimeout(timeout);
+    return new Icx(transport);
+  };
+
   onGetAddress = async () => {
     try {
       this.showProcessing();
-      const icx = new Icx(await TransportU2F.create());
-      const { publicKey, address, chainCode } = await icx.getAddress("44'/4801368'/0'/0'/0'", false, true);
+      const icx = await this.createIcx();
+      const { publicKey, address, chainCode } = await icx.getAddress("44'/4801368'/0'/0'/0'");
       const resultText = "[publicKey=" + publicKey + "],[address=" + address + "],[chainCode=" + chainCode + "]";
       this.setState({ result: resultText });
     } catch (error) {
@@ -55,7 +68,7 @@ class App extends Component {
   onSignTransaction = async () => {
     try {
       this.showProcessing();
-      const icx = new Icx(await TransportU2F.create());
+      const icx = await this.createIcx(90000);
       const path = "44'/4801368'/0'/0'/0'";
       const rawTx = 
         "icx_sendTransaction.fee.0x2386f26fc10000." +
@@ -72,7 +85,7 @@ class App extends Component {
   onSignTransactionV3 = async () => {
     try {
       this.showProcessing();
-      const icx = new Icx(await TransportU2F.create());
+      const icx = await this.createIcx(90000);
       const path = "44'/4801368'/0'/0'/0'";
       const rawTx =
         "icx_sendTransaction." +
@@ -91,7 +104,7 @@ class App extends Component {
   onGetAppConfiguration = async () => {
     try {
       this.showProcessing();
-      const icx = new Icx(await TransportU2F.create());
+      const icx = await this.createIcx();
       const {
         majorVersion,
         minorVersion,
@@ -108,7 +121,7 @@ class App extends Component {
   onTestGetAddress = async() => {
     try {
       this.showProcessing();
-      const icx = new Icx(await TransportU2F.create());
+      const icx = await this.createIcx(90000);
       await icx.setTestPrivateKey("23498dc21b9ee52e63e8d6566e0911ac255a38d3fcbc68a51e6b298520b72d6e");
       const { publicKey, address, chainCode } = await icx.getAddress("0'", true, false);
 
@@ -137,7 +150,7 @@ class App extends Component {
   onTestSignTransaction = async() => {
     try {
       this.showProcessing();
-      const icx = new Icx(await TransportU2F.create());
+      const icx = await this.createIcx(90000);
       await icx.setTestPrivateKey("c8e2edf81129f07720ed5ae36311316fb84ac6f7ddbc0f175f9df5848ad431ed");
       const rawTx =
         "icx_sendTransaction.fee.0x2386f26fc10000" + 
@@ -147,7 +160,7 @@ class App extends Component {
 
       let isSameSignature = false;
       let isSameHash = false;
-      const answerSignature = btoa("efc780adffc77b4fad0a18a3df5203128e69494e3abfc5f113e6d16b32ab0fd9204e97cdbcd61cd70997138ae74312b5b04945e38d67cfc2a9352af28b3599f300");
+      const answerSignature = this.hexToBase64("efc780adffc77b4fad0a18a3df5203128e69494e3abfc5f113e6d16b32ab0fd9204e97cdbcd61cd70997138ae74312b5b04945e38d67cfc2a9352af28b3599f300");
       const answerHash = "72f26c66527755484d4a9877457b7092827cad9ece8685ce392ebeccf17babad";
       if (signedRawTxBase64 == answerSignature) {
         isSameSignature = true;
@@ -170,7 +183,7 @@ class App extends Component {
   onTestSignTransactionLongData = async() => {
     try {
       this.showProcessing();
-      const icx = new Icx(await TransportU2F.create());
+      const icx = await this.createIcx(90000);
       await icx.setTestPrivateKey("e0b18a065bb0bd663e71aff34d1bd44dbf746113968533058440eca75b061c9e");
       // I don't know it's a right JSON format of transaction data
       let rawTx = "icx_sendTransaction.amount.ox1234.content.0x";
@@ -185,7 +198,7 @@ class App extends Component {
 
       let isSameSignature = false;
       let isSameHash = false;
-      const answerSignature = btoa("08ed94735506cddba0fe935bc1246b7408915cd1eaf7fc9203fea754a0bbdae562e5c3960195d226abcb0e272ead200cf5fdebd0583dc715207db8818cea386000");
+      const answerSignature = this.hexToBase64("08ed94735506cddba0fe935bc1246b7408915cd1eaf7fc9203fea754a0bbdae562e5c3960195d226abcb0e272ead200cf5fdebd0583dc715207db8818cea386000");
       const answerHash = "0651e37662eab417666e8dd664b6f62a8c42e9cf9c8eaababb6727cc203d0e18";
       if (signedRawTxBase64 == answerSignature) {
         isSameSignature = true;
@@ -226,7 +239,7 @@ class App extends Component {
                   signTransaction()
                 </button>
                 <ul>
-                  <li>check tx info on Ledger display and confirm. amount=1, fee=0x01=</li>
+                <li>check tx info on Ledger display and confirm. amount=1, fee=0x01=</li>
                 </ul>
               </li>
               <li>
