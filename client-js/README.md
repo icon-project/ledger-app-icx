@@ -88,6 +88,9 @@ import Icx from "@ledgerhq/hw-app-icx";
 
 const getIcxAddress = async () => {
   const transport = await TransportU2F.create();
+  transport.setDebugMode(true);         // if you want to print log
+  transport.setExchangeTimeout(60000);  // Set if you want to change U2F timeout. default: 30 sec
+
   const icx = new Icx(transport);
   const result = await icx.getAddress("44'/4801368'/0'/0'/0'", true, true);
   return result.address;
@@ -97,6 +100,4 @@ getIcxAddress().then(a => console.log(a));
 
 # TODO
 
-* Add ICON Ledger app test cases
-* Enhance ICON Ledger app sample web page
 * Show API documents directly from this page
