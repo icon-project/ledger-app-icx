@@ -44,6 +44,19 @@
 #define OFFSET_LC 4
 #define OFFSET_CDATA 5
 
+enum {
+    SW_OK = 0x9000,
+    SW_BAD_LENGTH = 0x6700,
+    SW_BAD_STATE = 0x6000,
+    SW_BAD_PARAM = 0x6B00,
+    SW_BAD_DATA = 0x6A80,
+    SW_BAD_CLA = 0x6E00,
+    SW_BAD_INST = 0x6D00,
+    SW_USER_DENIAL = 0x6985,
+    SW_NO_APDU = 0x6982,
+    SW_INTERNAL_ERROR_MASK = 0x6F00,
+};
+
 //  APDU IO
 typedef struct APDUIO {
     uint32_t flags;
@@ -388,7 +401,7 @@ unsigned int ui_address_prepro(const bagl_element_t *element) {
 
 unsigned int io_seproxyhal_touch_address_ok(const bagl_element_t *e) {
     set_result_get_publicKey();
-    aio_write16(0x9000);
+    aio_write16(SW_OK);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, g_aio.tx);
     // Display back the original UX
@@ -397,7 +410,7 @@ unsigned int io_seproxyhal_touch_address_ok(const bagl_element_t *e) {
 }
 
 unsigned int io_seproxyhal_touch_address_cancel(const bagl_element_t *e) {
-    aio_write16(0x6985);
+    aio_write16(SW_USER_DENIAL);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     // Display back the original UX
@@ -493,7 +506,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     aio_write(signature + 4 + rLength + 2 + sOffset, 32);
     aio_write8(signature[0] & 0x01);
     aio_write(tmpCtx.transactionContext.hash, 32);
-    aio_write16(0x9000);
+    aio_write16(SW_OK);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, g_aio.tx);
     // Display back the original UX
@@ -503,7 +516,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
 }
 
 unsigned int io_seproxyhal_touch_tx_cancel(const bagl_element_t *e) {
-    aio_write16(0x6985);
+    aio_write16(SW_USER_DENIAL);
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     // Display back the original UX
@@ -748,25 +761,24 @@ void handleGetPublicKey() {
     cx_ecfp_private_key_t privateKey;
 
     if (g_isSigning) {
-        //  invalid state
-        aio_write16(0x6000);
+        aio_write16(SW_BAD_STATE);
         return;
     }
     if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
         PRINTF("Invalid path\n");
-        aio_write16(0x6A80);
+        aio_write16(SW_BAD_DATA);
         return;
     }
     if (lc < 1+bip32PathLength*4) {
-        aio_write16(0x6700);
+        aio_write16(SW_BAD_LENGTH);
         return;
     }
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
-        aio_write16(0x6B00);
+        aio_write16(SW_BAD_PARAM);
         return;
     }
     if ((p2 != P2_CHAINCODE) && (p2 != P2_NO_CHAINCODE)) {
-        aio_write16(0x6B00);
+        aio_write16(SW_BAD_PARAM);
         return;
     }
     for (i = 0; i < bip32PathLength; i++) {
@@ -797,7 +809,7 @@ void handleGetPublicKey() {
                                tmpCtx.publicKeyContext.address, &sha3);
     if (p1 == P1_NON_CONFIRM) {
         set_result_get_publicKey();
-        aio_write16(0x9000);
+        aio_write16(SW_OK);
     } else {
         // prepare for a UI based reply
         skipWarning = false;
@@ -1006,12 +1018,12 @@ void handleSign() {
         if ((tmpCtx.transactionContext.pathLength < 0x01) ||
             (tmpCtx.transactionContext.pathLength > MAX_BIP32_PATH)) {
             PRINTF("Invalid path\n");
-            aio_write16(0x6A80);
+            aio_write16(SW_BAD_DATA);
             g_isSigning = false;
             return;
         }
         if (dataLength < 1+tmpCtx.transactionContext.pathLength*4+4) {
-            aio_write16(0x6700);
+            aio_write16(SW_BAD_LENGTH);
             g_isSigning = false;
             return;
         }
@@ -1028,7 +1040,7 @@ void handleSign() {
                 (workBuffer[0] << 24) | (workBuffer[1] << 16) |
                 (workBuffer[2] << 8) | (workBuffer[3]);
         if (tmpCtx.transactionContext.txLeft==0) {
-            aio_write16(0x6700);
+            aio_write16(SW_BAD_LENGTH);
             g_isSigning = false;
             return;
         }
@@ -1037,16 +1049,16 @@ void handleSign() {
         cx_sha3_init(&sha3, 256);
         parser_init(&tmpCtx.transactionContext.parser);
     } else if (p1 != P1_MORE) {
-        aio_write16(0x6B00);
+        aio_write16(SW_BAD_PARAM);
         g_isSigning = false;
         return;
     }
     if (p1 == P1_MORE && !g_isSigning) {
-        aio_write16(0x6000);
+        aio_write16(SW_BAD_STATE);
         return;
     }
     if (p2 != 0) {
-        aio_write16(0x6B00);
+        aio_write16(SW_BAD_PARAM);
         g_isSigning = false;
         return;
     }
@@ -1057,27 +1069,27 @@ void handleSign() {
     int feedRes = parser_feed(&tmpCtx.transactionContext.parser,
             workBuffer, dataLength);
     if (feedRes<0) {
-        aio_write16(0x6B00);
+        aio_write16(SW_BAD_PARAM);
         g_isSigning = false;
         return;
     }
     tmpCtx.transactionContext.txLeft -= dataLength;
 
     if (tmpCtx.transactionContext.txLeft>0) {
-        aio_write16(0x9000);
+        aio_write16(SW_OK);
         g_isSigning = true;
         return;
     }
     feedRes = parser_endFeed(&tmpCtx.transactionContext.parser);
     if (feedRes<0) {
-        aio_write16(0x6B00);
+        aio_write16(SW_BAD_PARAM);
         g_isSigning = false;
         return;
     }
 
     Parser* parser = &tmpCtx.transactionContext.parser;
     if (!parser->hasTo || !parser->hasValue) {
-        aio_write16(0x6A80);
+        aio_write16(SW_BAD_DATA);
         g_isSigning = false;
         return;
     }
@@ -1085,13 +1097,13 @@ void handleSign() {
     if (parser->hasVersion)
         version = parser->version;
     if (version!=0x02 && version!=0x03) {
-        aio_write16(0x6A80);
+        aio_write16(SW_BAD_DATA);
         g_isSigning = false;
         return;
     }
     if ((version==0x03 && !parser->hasStepLimit) ||
             (version==0x02 && !parser->hasFee)) {
-        aio_write16(0x6A80);
+        aio_write16(SW_BAD_DATA);
         g_isSigning = false;
         return;
     }
@@ -1148,17 +1160,17 @@ void handleGetAppConfiguration() {
     aio_write8(LEDGER_MAJOR_VERSION);
     aio_write8(LEDGER_MINOR_VERSION);
     aio_write8(LEDGER_PATCH_VERSION);
-    aio_write16(0x9000);
+    aio_write16(SW_OK);
 }
 
 void handleSetTestPrivateKey() {
     if (g_aio_buf[OFFSET_LC]!=32) {
-        aio_write16(0x6700);
+        aio_write16(SW_BAD_LENGTH);
         return;
     }
     cx_ecfp_init_private_key(CX_CURVE_256K1, g_aio_buf+OFFSET_CDATA, 32,
             &testPrivateKey);
-    aio_write16(0x9000);
+    aio_write16(SW_OK);
 }
 
 void app_main(void)
@@ -1176,12 +1188,12 @@ void app_main(void)
 
                 // no apdu received
                 if (g_aio.rx == 0) {
-                    aio_write16(0x6982);
+                    aio_write16(SW_NO_APDU);
                     continue;
                 }
 
                 if (g_aio_buf[OFFSET_CLA] != CLA) {
-                    aio_write16(0x6E00);
+                    aio_write16(SW_BAD_CLA);
                     continue;
                 }
 
@@ -1197,7 +1209,7 @@ void app_main(void)
                     handleSetTestPrivateKey();
 #endif
                 } else {
-                    aio_write16(0x6D00);
+                    aio_write16(SW_BAD_INST);
                 }
             }
             CATCH(EXCEPTION_IO_RESET) {
@@ -1205,7 +1217,7 @@ void app_main(void)
             }
             CATCH_OTHER(e) {
                 g_aio.tx = 0;
-                aio_write16(0x6800 | (e&0x7FF));
+                aio_write16(SW_INTERNAL_ERROR_MASK | (e&0x0FF));
             }
             FINALLY {
             }
