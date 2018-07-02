@@ -1054,8 +1054,13 @@ void handleSign() {
     if (dataLength > tmpCtx.transactionContext.txLeft)
         dataLength = tmpCtx.transactionContext.txLeft;
     cx_hash((cx_hash_t *)&sha3, 0, workBuffer, dataLength, NULL, 0);
-    parser_feed(&tmpCtx.transactionContext.parser,
+    int feedRes = parser_feed(&tmpCtx.transactionContext.parser,
             workBuffer, dataLength);
+    if (feedRes<0) {
+        aio_write16(0x6B00);
+        g_isSigning = false;
+        return;
+    }
     tmpCtx.transactionContext.txLeft -= dataLength;
 
     if (tmpCtx.transactionContext.txLeft>0) {
@@ -1063,7 +1068,12 @@ void handleSign() {
         g_isSigning = true;
         return;
     }
-    parser_endFeed(&tmpCtx.transactionContext.parser);
+    feedRes = parser_endFeed(&tmpCtx.transactionContext.parser);
+    if (feedRes<0) {
+        aio_write16(0x6B00);
+        g_isSigning = false;
+        return;
+    }
 
     Parser* parser = &tmpCtx.transactionContext.parser;
     if (!parser->hasTo || !parser->hasValue) {
