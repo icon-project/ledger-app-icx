@@ -1163,6 +1163,7 @@ void handleGetAppConfiguration() {
     aio_write16(SW_OK);
 }
 
+#if TEST_MODE
 void handleSetTestPrivateKey() {
     if (g_aio_buf[OFFSET_LC]!=32) {
         aio_write16(SW_BAD_LENGTH);
@@ -1172,6 +1173,7 @@ void handleSetTestPrivateKey() {
             &testPrivateKey);
     aio_write16(SW_OK);
 }
+#endif
 
 void app_main(void)
 {
