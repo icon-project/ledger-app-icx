@@ -98,6 +98,18 @@ const getIcxAddress = async () => {
 getIcxAddress().then(a => console.log(a));
 ```
 
+# Remarks
+
+## Integration with Chrome Extension
+JS library uses chrome pre-built U2F extension "CryptTokenExtension" which allows
+https web page as the trusted origin, and chrome extension can't use
+directly U2F extension. Therefore chrome extension needs to create an iframe 
+which pulls https web page integrating with this library and communicate
+through Message Channel. 
+
+Refer to https://bugs.chromium.org/p/chromium/issues/detail?id=823736
+for the reason U2F extension doesn't allow chrome extension origin.
+
 # TODO
 
 * Show API documents directly from this page
