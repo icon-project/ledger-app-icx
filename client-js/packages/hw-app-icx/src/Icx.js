@@ -48,7 +48,7 @@ export default class Icx {
    * Returns public key and ICON address for a given BIP 32 path.
    * @param path a path in BIP 32 format
    * @option boolDisplay optionally enable or not the display
-   * @option boolChaincode optionally enable or not the chaincore request
+   * @option boolChaincode optionally enable or not the chaincode request
    * @return an object with a publickey(hexa string), address(string) and 
    *  (optionally) chaincode(hexa string)
    * @example
