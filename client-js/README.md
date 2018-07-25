@@ -92,6 +92,7 @@ const getIcxAddress = async () => {
   transport.setExchangeTimeout(60000);  // Set if you want to change U2F timeout. default: 30 sec
 
   const icx = new Icx(transport);
+  // coin type: ICX(4801368), ICON testnet(1)
   const result = await icx.getAddress("44'/4801368'/0'", true, true);
   return result.address;
 };
