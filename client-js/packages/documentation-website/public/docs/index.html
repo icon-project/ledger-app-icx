@@ -55,6 +55,12 @@
                         #getAppConfiguration
                       </a></li>
                       
+                      <li><a
+                        href='#icxsettestprivatekey'
+                        class='regular pre-open'>
+                        #setTestPrivateKey
+                      </a></li>
+                      
                     </ul>
                   
                   
@@ -83,7 +89,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/a0f7d02e45bccf2774f5f6b481f703447ad56450/client-js/packages/hw-app-icx/src/Icx.js#L30-L179'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/d098b27632f90ee54fe44b8218364812fd4c25ea/client-js/packages/hw-app-icx/src/Icx.js#L30-L208'>
       <span>client-js/packages/hw-app-icx/src/Icx.js</span>
       </a>
     
@@ -154,7 +160,7 @@
   <div class='clearfix'>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/a0f7d02e45bccf2774f5f6b481f703447ad56450/client-js/packages/hw-app-icx/src/Icx.js#L57-L91'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/d098b27632f90ee54fe44b8218364812fd4c25ea/client-js/packages/hw-app-icx/src/Icx.js#L57-L91'>
       <span>client-js/packages/hw-app-icx/src/Icx.js</span>
       </a>
     
@@ -190,7 +196,8 @@
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>boolDisplay</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>)</code>
+            <span class='code bold'>boolDisplay</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>
+            = <code>false</code>)</code>
 	    
           </div>
           
@@ -198,7 +205,8 @@
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>boolChaincode</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>)</code>
+            <span class='code bold'>boolChaincode</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>
+            = <code>true</code>)</code>
 	    
           </div>
           
@@ -226,7 +234,7 @@
     <div class='py1 quiet mt1 prose-big'>Example</div>
     
       
-      <pre class='p1 overflow-auto round fill-light'>icx.getAddress(<span class="hljs-string">"44'/4801368'/0'/0'/0"</span>).then(<span class="hljs-function"><span class="hljs-params">o</span> =&gt;</span> o.address)</pre>
+      <pre class='p1 overflow-auto round fill-light'>icx.getAddress(<span class="hljs-string">"44'/4801368'/0'"</span>, <span class="hljs-literal">true</span>, <span class="hljs-literal">true</span>).then(<span class="hljs-function"><span class="hljs-params">o</span> =&gt;</span> o.address)</pre>
     
   
 
@@ -254,7 +262,7 @@
   <div class='clearfix'>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/a0f7d02e45bccf2774f5f6b481f703447ad56450/client-js/packages/hw-app-icx/src/Icx.js#L106-L155'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/d098b27632f90ee54fe44b8218364812fd4c25ea/client-js/packages/hw-app-icx/src/Icx.js#L106-L155'>
       <span>client-js/packages/hw-app-icx/src/Icx.js</span>
       </a>
     
@@ -319,7 +327,7 @@ and the BIP 32 path of the account to sign</p>
     <div class='py1 quiet mt1 prose-big'>Example</div>
     
       
-      <pre class='p1 overflow-auto round fill-light'>icx.signTransaction(<span class="hljs-string">"44'/4801368'/0'/0'/0'"</span>,
+      <pre class='p1 overflow-auto round fill-light'>icx.signTransaction(<span class="hljs-string">"44'/4801368'/0'"</span>,
     <span class="hljs-string">"icx_sendTransaction.fee.0x2386f26fc10000."</span> +
     <span class="hljs-string">"from.hxc9ecad30b05a0650a337452fce031e0c60eacc3a.nonce.0x3."</span> +
     <span class="hljs-string">"to.hx4c5101add2caa6a920420cf951f7dd7c7df6ca24.value.0xde0b6b3a7640000"</span>)
@@ -351,7 +359,7 @@ and the BIP 32 path of the account to sign</p>
   <div class='clearfix'>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/a0f7d02e45bccf2774f5f6b481f703447ad56450/client-js/packages/hw-app-icx/src/Icx.js#L161-L178'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/d098b27632f90ee54fe44b8218364812fd4c25ea/client-js/packages/hw-app-icx/src/Icx.js#L161-L175'>
       <span>client-js/packages/hw-app-icx/src/Icx.js</span>
       </a>
     
@@ -388,6 +396,86 @@ and the BIP 32 path of the account to sign</p>
 
   
 
+  
+
+  
+
+  
+
+  
+</section>
+
+      </div>
+    </div>
+  
+    <div class='border-bottom' id='icxsettestprivatekey'>
+      <div class="clearfix small pointer toggle-sibling">
+        <div class="py1 contain">
+            <a class='icon pin-right py1 dark-link caret-right'>▸</a>
+            <span class='code strong strong truncate'>setTestPrivateKey(privateKeyHex)</span>
+        </div>
+      </div>
+      <div class="clearfix display-none toggle-target">
+        <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
+    
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://repo.theloop.co.kr/enterprise/ledger-app-icx/blob/d098b27632f90ee54fe44b8218364812fd4c25ea/client-js/packages/hw-app-icx/src/Icx.js#L201-L207'>
+      <span>client-js/packages/hw-app-icx/src/Icx.js</span>
+      </a>
+    
+  </div>
+  
+
+  <p>Sets the given key as the test purpose private key corresponding to
+"\0'" of BIP 32 path just for test purpose. After calling this function,
+all functions with "\0'" path works based on this private key.
+REMARK: Test purpose only such as verifying signTransaction function.</p>
+
+
+  <div class='pre p1 fill-light mt0'>setTestPrivateKey(privateKeyHex: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>)</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>privateKeyHex</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>)</code>
+	    private key in hexadecimal string format
+
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Example</div>
+    
+      
+      <pre class='p1 overflow-auto round fill-light'>icx.setTestPrivateKey(<span class="hljs-string">"23498dc21b9ee52e63e8d6566e0911ac255a38d3fcbc68a51e6b298520b72d6e"</span>)
+  .then(<span class="hljs-function"><span class="hljs-params">result</span> =&gt;</span> ...)
+icx.getAddress(<span class="hljs-string">"0'"</span>, <span class="hljs-literal">false</span>, <span class="hljs-literal">false</span>).then(<span class="hljs-function"><span class="hljs-params">o</span> =&gt;</span> o.address)</pre>
+    
   
 
   
