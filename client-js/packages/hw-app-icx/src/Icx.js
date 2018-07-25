@@ -52,7 +52,7 @@ export default class Icx {
    * @return an object with a publickey(hexa string), address(string) and 
    *  (optionally) chaincode(hexa string)
    * @example
-   * icx.getAddress("44'/4801368'/0'/0'/0", true, true).then(o => o.address)
+   * icx.getAddress("44'/4801368'/0'", true, true).then(o => o.address)
    */
   getAddress(
     path: string,
@@ -97,7 +97,7 @@ export default class Icx {
    * @param rawTxAscii raw transaction data to sign in ASCII string format
    * @return an object with a base64 encoded signature and hash in hexa string
    * @example
-   * icx.signTransaction("44'/4801368'/0'/0'/0'",
+   * icx.signTransaction("44'/4801368'/0'",
    *     "icx_sendTransaction.fee.0x2386f26fc10000." +
    *     "from.hxc9ecad30b05a0650a337452fce031e0c60eacc3a.nonce.0x3." +
    *     "to.hx4c5101add2caa6a920420cf951f7dd7c7df6ca24.value.0xde0b6b3a7640000")

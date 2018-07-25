@@ -40,7 +40,7 @@ class App extends Component {
       const transport = await TransportU2F.create();
       transport.setDebugMode(true);
       const btc = new Btc(transport);
-      const { bitcoinAddress } = await btc.getWalletPublicKey("44'/0'/0'/0'");
+      const { bitcoinAddress } = await btc.getWalletPublicKey("44'/0'/0'/0");
       this.setState({ result: bitcoinAddress });
     } catch (error) {
       this.setState({ error });
@@ -58,7 +58,7 @@ class App extends Component {
     try {
       this.showProcessing();
       const icx = await this.createIcx();
-      const { publicKey, address, chainCode } = await icx.getAddress("44'/4801368'/0'/0'/0'");
+      const { publicKey, address, chainCode } = await icx.getAddress("44'/4801368'/0'");
       const resultText = "[publicKey=" + publicKey + "],[address=" + address + "],[chainCode=" + chainCode + "]";
       this.setState({ result: resultText });
     } catch (error) {
@@ -69,7 +69,7 @@ class App extends Component {
     try {
       this.showProcessing();
       const icx = await this.createIcx(90000);
-      const path = "44'/4801368'/0'/0'/0'";
+      const path = "44'/4801368'/0'";
       const rawTx = 
         "icx_sendTransaction.fee.0x2386f26fc10000." +
         "from.hxc9ecad30b05a0650a337452fce031e0c60eacc3a.nonce.0x3." +
@@ -86,7 +86,7 @@ class App extends Component {
     try {
       this.showProcessing();
       const icx = await this.createIcx(90000);
-      const path = "44'/4801368'/0'/0'/0'";
+      const path = "44'/4801368'/0'";
       const rawTx =
         "icx_sendTransaction." +
         "stepLimit.0xff." +
