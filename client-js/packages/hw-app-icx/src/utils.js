@@ -1,6 +1,6 @@
 /********************************************************************************
- *   Ledger Node JS API
- *   (c) 2016-2017 Ledger
+ *   Ledger Node JS API for ICON
+ *   (c) 2018 TheLoop
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.

@@ -1,5 +1,8 @@
+# Introduction
 It is the javascript version of client library to communicatie with Ledger Nano /
 Nano S / Blue applications.
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # Installation Guide
 
@@ -111,6 +114,3 @@ through Message Channel.
 Refer to https://bugs.chromium.org/p/chromium/issues/detail?id=823736
 for the reason U2F extension doesn't allow chrome extension origin.
 
-# TODO
-
-* Show API documents directly from this page

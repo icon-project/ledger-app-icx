@@ -1,6 +1,6 @@
 /********************************************************************************
- *   Ledger Node JS API
- *   (c) 2016-2017 Ledger
+ *   Ledger JS API for ICON
+ *   (c) 2018 TheLoop
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -185,19 +185,6 @@ export default class Icx {
    *   .then(result => ...)
    * icx.getAddress("0'", false, false).then(o => o.address)
    */
-  /*
-  setTestPrivateKey(privateKeyHex: string): Promise<{a: string}> {
-    let data = new Buffer(32);
-    for (let i = 0; i < privateKeyHex.length; i += 2) {
-      data[i / 2] = parseInt(privateKeyHex.substr(i, 8), 16);
-    }
-    this.transport.send(0xe0, 0xff, 0x00, 0x00, data).then(
-      apduResponse => {
-        return apduResponse;
-      }
-    );
-  }
-  */
   setTestPrivateKey(privateKeyHex: string) {
     let data = new Buffer(32);
     for (let i = 0; i < privateKeyHex.length; i += 2) {
