@@ -1,6 +1,6 @@
 /********************************************************************************
  *   Ledger JS API for ICON
- *   (c) 2018 TheLoop
+ *   (c) 2018 ICON Foundation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
