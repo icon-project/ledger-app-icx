@@ -1,0 +1,26 @@
+{
+  "name": "@ledgerhq/test-icx",
+  "license": "Apache-2.0",
+  "scripts": {
+    "start": "cross-env NODE_ENV=development parcel index.html --https",
+    "build": "rm -rf .cache/ && cross-env NODE_ENV=production parcel build index.html --no-minify --public-url /",
+    "clean": "rm -rf dist/ .cache/",
+    "test": "budo --ssl -d dist"
+  },
+  "dependencies": {
+    "@ledgerhq/hw-app-btc": "^4.13.0",
+    "@ledgerhq/hw-app-icx": "^0.1.0",
+    "@ledgerhq/hw-transport-u2f": "^4.13.0",
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0",
+    "budo": "^11.0.1"
+  },
+  "devDependencies": {
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-preset-react-app": "^3.1.1",
+    "cross-env": "^5.1.4",
+    "parcel-bundler": "^1.6.2"
+  },
+  "private": true,
+  "version": "4.14.0"
+}

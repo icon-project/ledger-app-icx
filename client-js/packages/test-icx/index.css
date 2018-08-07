@@ -1,0 +1,19 @@
+.root {
+  font-family: "Arial";
+  font-size: small;
+}
+
+.action {
+  font-size: 90%;
+  background-color: #fcfcfc;
+}
+
+.result {
+  background-color: #eee;
+  color: #222;
+  font-size: 1.0em;
+}
+
+.error {
+  color: #c00;
+}
