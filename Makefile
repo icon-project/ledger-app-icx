@@ -7,28 +7,46 @@ $(error Environment variable BOLOS_SDK is not set)
 endif
 include $(BOLOS_SDK)/Makefile.defines
 
-APP_PATH = "44'/4801368'"
+
 # All but bitcoin app use dependency onto the bitcoin app/lib
 APP_LOAD_FLAGS=--appFlags 0x50
 APP_LOAD_PARAMS=--curve secp256k1 $(COMMON_LOAD_PARAMS) 
 
-APPNAME=ICON
 APPVERSION_M=0
 APPVERSION_N=1
 APPVERSION_P=0
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
-APP_LOAD_PARAMS += --path $(APP_PATH)
 APP_LOAD_PARAMS += $(APP_LOAD_FLAGS)
 
 DEFINES += $(DEFINES_LIB)
 
-COIN = icx
+ifeq ($(COIN),)
+COIN=icon
+endif
+
 ifeq ($(TARGET_NAME),TARGET_BLUE)
 ICONNAME=blue_app_$(COIN).gif
 else
 ICONNAME=nanos_app_$(COIN).gif
 endif
+
+
+ifeq ($(COIN),icon)
+APP_PATH = "44'/4801368'"
+APPNAME=ICON
+else ifeq ($(COIN),icon_testnet)
+APP_PATH = "44'/1'"
+APPNAME="ICON testnet"
+else
+ifeq ($(filter clean,$(MAKECMDGOALS)),)
+$(error Unsupported COIN - use icon, icon_testnet)
+endif
+endif
+
+APP_LOAD_PARAMS += --path $(APP_PATH)
+
+
 
 ################
 # Default rule #
@@ -89,4 +107,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS icon
+	@echo VARIANTS icon, icon_testnet
