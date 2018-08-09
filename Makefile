@@ -107,4 +107,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS icon, icon_testnet
+	@echo VARIANTS icon icon_testnet
