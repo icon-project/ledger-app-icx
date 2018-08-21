@@ -1,10 +1,8 @@
-# Introduction
+# ICON Ledger JS API
 It is the javascript version of client library to communicatie with Ledger Nano /
 Nano S / Blue applications.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-
-# Installation Guide
 
 ## Prerequisite
 
@@ -81,10 +79,10 @@ Generate API documents at ./packages/documentation-website
 yarn documentation
 ```
 
-# API 
+## API 
 Refer to API document under ./packages/documentation-website/public/docs/index.html
 
-# Examples
+## Examples
 ```js
 import Transport from "@ledgerhq/hw-transport-u2f";
 import Icx from "@ledgerhq/hw-app-icx";
@@ -102,9 +100,9 @@ const getIcxAddress = async () => {
 getIcxAddress().then(a => console.log(a));
 ```
 
-# Remarks
+## Remarks
 
-## Integration with Chrome Extension
+### Integration with Chrome Extension
 JS library uses chrome pre-built U2F extension "CryptTokenExtension" which allows
 https web page as the trusted origin, and chrome extension can't use
 directly U2F extension. Therefore chrome extension needs to create an iframe 
