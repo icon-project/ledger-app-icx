@@ -218,6 +218,25 @@ class App extends Component {
       this.setState({ error });
     }
   };
+  onTestSignTransactionMultiLevelParams= async () => {
+    try {
+      this.showProcessing();
+      const icx = await this.createIcx(90000);
+      const path = "44'/4801368'/0'";
+      const rawTx =
+        "icx_sendTransaction.data." + 
+        "{method.transfer.params." +
+        "{_to.hx5be671cf246b6eb9438914494cbab57e2641d37a._value.0xde0b6b3a7640000}}." +
+        "dataType.call.from.hx772d8fa231eef810b9e39270963f97dacc69f2a5.nid.0x3." +
+        "stepLimit.0x2b750.timestamp.0x573e910b5cb48." +
+        "to.cxe382845b0fa8d00d748f7b29c9ee7369eee20897.value.0x0.version.0x3";
+      const { signedRawTxBase64, hashHex } =
+        await icx.signTransaction(path, rawTx);
+      this.showTestResult("");
+    } catch (error) {
+      this.setState({ error });
+    }
+  };
   onClear = async() => {
     this.clear();
   };
@@ -287,6 +306,17 @@ class App extends Component {
                 </button>
                 <ul>
                   <li>check tx info on Ledger display and confirm</li>
+                </ul>
+              </li>
+            </ul>
+            <ul>
+              <li>
+                <button className="action" onClick={this.onTestSignTransactionMultiLevelParams}>
+                  verify if multi-level params are accepted in signTransaction()
+                </button>
+                <ul>
+                  <li>check tx info on Ledger display and confirm</li>
+                  <li>NOTE: It doesn't check the signature validity</li>
                 </ul>
               </li>
             </ul>
