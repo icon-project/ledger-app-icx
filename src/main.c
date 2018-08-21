@@ -984,9 +984,11 @@ int parser_feed(Parser* parser, const uint8_t *p, int len) {
             } else if (*p=='{' || *p=='[') {
                 ++(parser->nestingLevel);
                 ++p;
+                continue;
             } else if (*p=='}' || *p==']') {
                 --(parser->nestingLevel);
                 ++p;
+                continue;
             }
         }
         *(parser->wp)++ = *p++;
