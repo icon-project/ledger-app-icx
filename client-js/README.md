@@ -1,6 +1,5 @@
 # ICON Ledger JS API
-It is the javascript version of client library to communicatie with Ledger Nano /
-Nano S / Blue applications.
+It is the javascript version of client library to communicatie with Ledger Nano S applications.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
@@ -80,7 +79,7 @@ yarn documentation
 ```
 
 ## API 
-Refer to API document under ./packages/documentation-website/public/docs/index.html
+Refer to [API document](https://icon-project.github.io/ledger-app-icx/client-js/packages/documentation-website/public/docs/index.html).
 
 ## Examples
 ```js
