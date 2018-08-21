@@ -1092,7 +1092,7 @@ void handleSign() {
     }
 
     Parser* parser = &tmpCtx.transactionContext.parser;
-    if (!parser->hasTo || !parser->hasValue) {
+    if (!parser->hasTo) {
         aio_write16(SW_BAD_DATA);
         g_isSigning = false;
         return;
@@ -1100,12 +1100,12 @@ void handleSign() {
     uint32_t version = 0x02;
     if (parser->hasVersion)
         version = parser->version;
-    if (version!=0x02 && version!=0x03) {
+    if (version<0x02) {
         aio_write16(SW_BAD_DATA);
         g_isSigning = false;
         return;
     }
-    if ((version==0x03 && !parser->hasStepLimit) ||
+    if ((version>=0x03 && !parser->hasStepLimit) ||
             (version==0x02 && !parser->hasFee)) {
         aio_write16(SW_BAD_DATA);
         g_isSigning = false;
@@ -1132,7 +1132,7 @@ void handleSign() {
     adjustDecimals((char *)(g_aio_buf + 100), i,
             fullAmount+4, sizeof(fullAmount)-4, ICX_EXP);
 
-    if (version==0x03) {
+    if (version>=0x03) {
         os_memmove(feeName, "StepLimit", 10);
         tostring256(&parser->stepLimit, 10, fullFee, sizeof(fullFee));
     } else {
