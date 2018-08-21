@@ -7,28 +7,46 @@ $(error Environment variable BOLOS_SDK is not set)
 endif
 include $(BOLOS_SDK)/Makefile.defines
 
-APP_PATH = ""
+
 # All but bitcoin app use dependency onto the bitcoin app/lib
 APP_LOAD_FLAGS=--appFlags 0x50
 APP_LOAD_PARAMS=--curve secp256k1 $(COMMON_LOAD_PARAMS) 
 
-APPNAME=ICON
-APPVERSION_M=1
-APPVERSION_N=0
-APPVERSION_P=2
+APPVERSION_M=0
+APPVERSION_N=1
+APPVERSION_P=0
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
-APP_LOAD_PARAMS += --path $(APP_PATH)
 APP_LOAD_PARAMS += $(APP_LOAD_FLAGS)
 
 DEFINES += $(DEFINES_LIB)
 
-COIN = icx
+ifeq ($(COIN),)
+COIN=icon
+endif
+
 ifeq ($(TARGET_NAME),TARGET_BLUE)
 ICONNAME=blue_app_$(COIN).gif
 else
 ICONNAME=nanos_app_$(COIN).gif
 endif
+
+
+ifeq ($(COIN),icon)
+APP_PATH = "44'/4801368'"
+APPNAME=ICON
+else ifeq ($(COIN),icon_testnet)
+APP_PATH = "44'/1'"
+APPNAME="ICON testnet"
+else
+ifeq ($(filter clean,$(MAKECMDGOALS)),)
+$(error Unsupported COIN - use icon, icon_testnet)
+endif
+endif
+
+APP_LOAD_PARAMS += --path $(APP_PATH)
+
+
 
 ################
 # Default rule #
@@ -46,7 +64,8 @@ DEFINES   += HAVE_BAGL HAVE_SPRINTF
 DEFINES   += PRINTF\(...\)=
 DEFINES   += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=6 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
 DEFINES   += LEDGER_MAJOR_VERSION=$(APPVERSION_M) LEDGER_MINOR_VERSION=$(APPVERSION_N) LEDGER_PATCH_VERSION=$(APPVERSION_P) TCS_LOADER_PATCH_VERSION=0
-
+listvariants:
+	@echo VARIANTS vechain
 DEFINES   += UNUSED\(x\)=\(void\)x
 DEFINES   += APPVERSION=\"$(APPVERSION)\"
 
@@ -75,7 +94,7 @@ DEFINES   += USB_SEGMENT_SIZE=64
 DEFINES   += U2F_PROXY_MAGIC=\"ICON\"
 DEFINES   += HAVE_IO_U2F HAVE_U2F 
 
-load:
+load: all
 	python -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
 
 delete:
@@ -86,3 +105,6 @@ include $(BOLOS_SDK)/Makefile.rules
 
 #add dependency on custom makefile filename
 dep/%.d: %.c Makefile
+
+listvariants:
+	@echo VARIANTS COIN icon icon_testnet

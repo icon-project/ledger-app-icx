@@ -157,7 +157,10 @@ union {
 } tmpCtx;
 
 cx_sha3_t sha3;
+
+#if TEST_MODE
 cx_ecfp_private_key_t testPrivateKey;
+#endif
 
 bool g_isSigning;
 char fullAddress[44];
@@ -473,16 +476,19 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     cx_ecfp_private_key_t privateKey;
     uint8_t rLength, sLength, rOffset, sOffset;
 
+#if TEST_MODE
     if (tmpCtx.transactionContext.bip32Path[0]==TEST_BIP32) {
         os_memmove(&privateKey, &testPrivateKey, sizeof(privateKey));
-    } else {
+    } else 
+#endif    
+    {
         os_perso_derive_node_bip32(
             CX_CURVE_256K1, tmpCtx.transactionContext.bip32Path,
             tmpCtx.transactionContext.pathLength, privateKeyData, NULL);
         cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
         os_memset(privateKeyData, 0, sizeof(privateKeyData));
     }
-#if CX_APILEVEL >= 8
+
     unsigned int info = 0;
     signatureLength =
         cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
@@ -492,12 +498,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     if (info & CX_ECCINFO_PARITY_ODD) {
         signature[0] |= 0x01;
     }
-#else
-    signatureLength =
-        cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
-                      tmpCtx.transactionContext.hash,
-                      sizeof(tmpCtx.transactionContext.hash), signature);
-#endif
+
     os_memset(&privateKey, 0, sizeof(privateKey));
     // Parity is present in the sequence tag in the legacy API
     rLength = signature[3];
@@ -789,13 +790,17 @@ void handleGetPublicKey() {
         dataBuffer += 4;
     }
     tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
+
+#if TEST_MODE
     if (bip32Path[0]==TEST_BIP32) {
         os_memmove(&privateKey, &testPrivateKey, sizeof(privateKey));
         if (tmpCtx.publicKeyContext.getChaincode) {
             os_memset(&tmpCtx.publicKeyContext.chainCode, 0,
                     sizeof(tmpCtx.publicKeyContext.chainCode));
         }
-    } else {
+    } else 
+#endif    
+    {
         os_perso_derive_node_bip32(CX_CURVE_256K1, bip32Path, bip32PathLength,
                                    privateKeyData,
                                    (tmpCtx.publicKeyContext.getChaincode
@@ -1120,9 +1125,14 @@ void handleSign() {
     fullAddress[42] = ' ';
     fullAddress[43] = '\0';
 
-    tostring256(&parser->value, 10, (char *)(g_aio_buf + 100), 100);
+    if(!tostring256(&parser->value, 10, (char *)(g_aio_buf + 100), 100)){
+        aio_write16(SW_BAD_DATA);
+        g_isSigning = false;
+        return;
+    }
+
     i = 0;
-    while (g_aio_buf[100 + i]) {
+    while (g_aio_buf[100 + i] && i <= 100) {
         i++;
     }
     fullAmount[0] = 'I';
@@ -1130,16 +1140,25 @@ void handleSign() {
     fullAmount[2] = 'X';
     fullAmount[3] = ' ';
     adjustDecimals((char *)(g_aio_buf + 100), i,
-            fullAmount+4, sizeof(fullAmount)-4, ICX_EXP);
+                            fullAmount+4, sizeof(fullAmount)-4, ICX_EXP);
+
 
     if (version>=0x03) {
         os_memmove(feeName, "StepLimit", 10);
-        tostring256(&parser->stepLimit, 10, fullFee, sizeof(fullFee));
+        if(!tostring256(&parser->stepLimit, 10, fullFee, sizeof(fullFee))){
+            aio_write16(SW_BAD_DATA);
+            g_isSigning = false;
+            return;
+        }
     } else {
         os_memmove(feeName, "Fee", 4);
-        tostring256(&parser->fee, 10, (char *)(g_aio_buf + 100), 100);
+        if(!tostring256(&parser->fee, 10, (char *)(g_aio_buf + 100), 100)){
+            aio_write16(SW_BAD_DATA);
+            g_isSigning = false;
+            return;
+        }
         i = 0;
-        while (g_aio_buf[100 + i]) {
+        while (g_aio_buf[100 + i] && i <= 100) {
             i++;
         }
         if (version==0x02) {
@@ -1149,7 +1168,7 @@ void handleSign() {
             fullFee[3] = ' ';
         }
         adjustDecimals((char *)(g_aio_buf + 100), i,
-                fullFee+4, sizeof(fullFee)-4, ICX_EXP);
+                                fullFee+4, sizeof(fullFee)-4, ICX_EXP);
     }
 
     skipWarning = true;
