@@ -16,7 +16,7 @@ It is the javascript version of client library to communicatie with Ledger Nano 
 
 ### Preparation
 1. Connect Ledger Nano S device on a USB port
-1. Make sure Ledger Nano S set up and ICON application installed and started
+1. Make sure Ledger Nano S is initialized and unlocked, and ICON application is installed and started
 
 ### Build and test
 1. Simply install dependencies, build, and start a simple web server with simple
