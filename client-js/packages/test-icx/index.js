@@ -89,8 +89,8 @@ class App extends Component {
       const path = "44'/4801368'/0'";
       const rawTx =
         "icx_sendTransaction." +
-        "stepLimit.0xff." +
         "from.hxc9ecad30b05a0650a337452fce031e0c60eacc3a.nonce.0x3." +
+        "stepLimit.0xff." +
         "to.hx4c5101add2caa6a920420cf951f7dd7c7df6ca24.value.0xde0b6b3a7640000." +
         "version.0x3";
       const { signedRawTxBase64, hashHex } =
