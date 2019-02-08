@@ -958,10 +958,15 @@ void parser_init(Parser* parser) {
     parser->isEscaping = true;
     parser->wp = parser->buf;
     parser->hasFee = false;
+    clear256(&parser->fee);
     parser->hasStepLimit = false;
+    clear256(&parser->stepLimit);
     parser->hasTo = false;
+    parser->to[0] = 0;
     parser->hasValue = false;
+    clear256(&parser->value);
     parser->hasVersion = false;
+    parser->version = 0;
 }
 
 inline const char* parser_endOfBuf(Parser* parser) {
