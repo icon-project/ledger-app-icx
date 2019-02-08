@@ -237,6 +237,20 @@ class App extends Component {
       this.setState({ error });
     }
   };
+  onTestSignTransactionNoValue= async () => {
+    try {
+      this.showProcessing();
+      const icx = await this.createIcx(90000);
+      const path = "44'/4801368'/0'";
+      const rawTx =
+        "icx_sendTransaction.data.{method.transfer.params.{_to.hxb2d0d07dcdd887a8b60e3069d87e91a312947adc._value.0x1bc16d674ec80000}}.dataType.call.from.hx772d8fa231eef810b9e39270963f97dacc69f2a5.nid.0x1.stepLimit.0x30d40.timestamp.0x5815c9daa8a18.to.cxc248ee72f58f7ec0e9a382379d67399f45b596c7.version.0x3"
+      const { signedRawTxBase64, hashHex } =
+        await icx.signTransaction(path, rawTx);
+      this.showTestResult("");
+    } catch (error) {
+      this.setState({ error });
+    }
+  };
   onClear = async() => {
     this.clear();
   };
@@ -316,6 +330,17 @@ class App extends Component {
                 </button>
                 <ul>
                   <li>check tx info on Ledger display and confirm</li>
+                  <li>NOTE: It doesn't check the signature validity</li>
+                </ul>
+              </li>
+            </ul>
+            <ul>
+              <li>
+                <button className="action" onClick={this.onTestSignTransactionNoValue}>
+                  verify if tx with no amount can be displayed correctly in signTransaction()
+                </button>
+                <ul>
+                  <li>check if tx info on Ledger display doesn't have wrong amount such as "ICX StepLimit" and confirm</li>
                   <li>NOTE: It doesn't check the signature validity</li>
                 </ul>
               </li>
