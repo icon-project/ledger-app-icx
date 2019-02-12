@@ -251,6 +251,31 @@ class App extends Component {
       this.setState({ error });
     }
   };
+  onTestSignTransactionBigValue= async () => {
+    // Current display buffer is 47, so test value should be within int256 range
+    // in loop and longer than 47 decimal numbers in ICX.
+    try {
+      this.showProcessing();
+      const icx = await this.createIcx(90000);
+      const path = "44'/4801368'/0'";
+      const rawTx =
+        "icx_sendTransaction.data." + 
+        "{method.transfer.params." +
+        "{_to.hx5be671cf246b6eb9438914494cbab57e2641d37a._value.0xde0b6b3a7640000}}." +
+        "dataType.call.from.hx772d8fa231eef810b9e39270963f97dacc69f2a5.nid.0x3." +
+        "stepLimit.0x2b750.timestamp.0x573e910b5cb48." +
+        "to.cxe382845b0fa8d00d748f7b29c9ee7369eee20897.value.0xde0b6b3a76400000000000000000000000000000.version.0x3";
+      const { signedRawTxBase64, hashHex } =
+        await icx.signTransaction(path, rawTx);
+      this.showTestResult("It should occur an error of code 0x6a80.");
+    } catch (error) {
+      if (error.statusCode == 0x6a80) {
+        this.showTestResult("");
+      } else {
+        this.setState({ error });
+      }
+    }
+  };
   onClear = async() => {
     this.clear();
   };
@@ -272,7 +297,7 @@ class App extends Component {
                   signTransaction()
                 </button>
                 <ul>
-                <li>check tx info on Ledger display and confirm. amount=1, fee=0x01=</li>
+                <li>check tx info on Ledger display and confirm. amount=1, fee=0x01</li>
                 </ul>
               </li>
               <li>
@@ -296,7 +321,7 @@ class App extends Component {
             <ul>
               <li>
                 <button className="action" onClick={this.onTestGetAddress}>
-                  verify public key and address from getAddress()
+                  getAddress(): verify public key and address
                 </button>
                 <ul>
                   <li>check if the address on display is 'hxfa1602a01d0ca2c2256f1a508be6498df801a5b2' and confirm</li>
@@ -306,7 +331,7 @@ class App extends Component {
             <ul>
               <li>
                 <button className="action" onClick={this.onTestSignTransaction}>
-                  verify signature and hash from signTransaction()
+                  signTransaction(): verify signature and hash
                 </button>
                 <ul>
                   <li>check tx info on Ledger display and confirm</li>
@@ -316,7 +341,7 @@ class App extends Component {
             <ul>
               <li>
                 <button className="action" onClick={this.onTestSignTransactionLongData}>
-                  verify a long data (>2K) from signTransaction()
+                  signTransaction(): verify a long data (>2K)
                 </button>
                 <ul>
                   <li>check tx info on Ledger display and confirm</li>
@@ -326,7 +351,7 @@ class App extends Component {
             <ul>
               <li>
                 <button className="action" onClick={this.onTestSignTransactionMultiLevelParams}>
-                  verify if multi-level params are accepted in signTransaction()
+                  signTransaction(): multi-level params
                 </button>
                 <ul>
                   <li>check tx info on Ledger display and confirm</li>
@@ -337,12 +362,19 @@ class App extends Component {
             <ul>
               <li>
                 <button className="action" onClick={this.onTestSignTransactionNoValue}>
-                  verify if tx with no amount can be displayed correctly in signTransaction()
+                  signTransaction(): display test with tx of no amount
                 </button>
                 <ul>
                   <li>check if tx info on Ledger display doesn't have wrong amount such as "ICX StepLimit" and confirm</li>
                   <li>NOTE: It doesn't check the signature validity</li>
                 </ul>
+              </li>
+            </ul>
+            <ul>
+              <li>
+                <button className="action" onClick={this.onTestSignTransactionBigValue}>
+                  signTransaction(): error test with a big amount out of display buffer
+                </button>
               </li>
             </ul>
           </li>
