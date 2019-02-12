@@ -1145,8 +1145,14 @@ void handleSign() {
     fullAmount[1] = 'C';
     fullAmount[2] = 'X';
     fullAmount[3] = ' ';
-    adjustDecimals((char *)(g_aio_buf + 100), i,
+    bool res;
+    res = adjustDecimals((char *)(g_aio_buf + 100), i,
                             fullAmount+4, sizeof(fullAmount)-4, ICX_EXP);
+    if (!res) {
+        aio_write16(SW_BAD_DATA);
+        g_isSigning = false;
+        return;
+    }
 
 
     if (version>=0x03) {
@@ -1173,8 +1179,13 @@ void handleSign() {
             fullFee[2] = 'X';
             fullFee[3] = ' ';
         }
-        adjustDecimals((char *)(g_aio_buf + 100), i,
+        res = adjustDecimals((char *)(g_aio_buf + 100), i,
                                 fullFee+4, sizeof(fullFee)-4, ICX_EXP);
+        if (!res) {
+            aio_write16(SW_BAD_DATA);
+            g_isSigning = false;
+            return;
+        }
     }
 
     skipWarning = true;
