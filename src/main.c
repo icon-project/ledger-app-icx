@@ -25,6 +25,7 @@
 #define TEST_MODE   0
 
 #define MAX_BIP32_PATH 10
+#define MAX_VALUE_LEN 66
 
 #define CLA 0xE0
 #define INS_GET_PUBLIC_KEY 0x02
@@ -915,21 +916,21 @@ static int onTokenEnd(Parser* parser, const char* token, int len) {
         }
         return 0;
     } else if (parser->state==PARSER_STATE_VALUE_FEE) {
-        if (len > 34)
+        if (len > MAX_VALUE_LEN)
             return -1;
         if (!isValidHex(token, len))
             return -1;
         parser->hasFee = true;
         parseHex256(token+2, len-2, &parser->fee);
     } else if (parser->state==PARSER_STATE_VALUE_STEP_LIMIT) {
-        if (len > 34)
+        if (len > MAX_VALUE_LEN)
             return -1;
         if (!isValidHex(token, len))
             return -1;
         parser->hasStepLimit = true;
         parseHex256(token+2, len-2, &parser->stepLimit);
     } else if (parser->state==PARSER_STATE_VALUE_VALUE) {
-        if (len > 34)
+        if (len > MAX_VALUE_LEN)
             return -1;
         if (!isValidHex(token, len))
             return -1;
